@@ -1,0 +1,31 @@
+package middleware
+
+import (
+	"context"
+	"log/slog"
+	"time"
+
+	activitylog "github.com/dev-digitalproject/go-simpp-library/activity-log/v1"
+)
+
+func LogUserActivity(ctx context.Context, logger activitylog.ActivityLog, eventType string, metadata any) {
+	authUserID, err := GetUserIDFromContext(ctx)
+	if err != nil {
+		slog.Error("Error getting user id from context", slog.Any("error", err))
+		return
+	}
+	proxy, err := GetRequestInfoFromContext(ctx)
+	if err != nil {
+		slog.Error("Error getting request info from context", slog.Any("error", err))
+		return
+	}
+	logger.Log(ctx, activitylog.ActivityLogEntry{
+		UserID:           authUserID,
+		ActionType:       eventType,
+		Metadata:         metadata,
+		Timestamp:        time.Now(),
+		RequestIP:        proxy.IPAddr,
+		RequestUserAgent: proxy.UserAgent,
+		RequestEndpoint:  proxy.Endpoint,
+	})
+}

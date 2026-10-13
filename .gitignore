@@ -1,0 +1,13 @@
+.DS_Store
+.idea
+
+.env*
+
+temp
+tmp
+tmp_*
+temp_*
+
+testor.go
+
+.sonar
