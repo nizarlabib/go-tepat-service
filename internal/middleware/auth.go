@@ -105,6 +105,12 @@ func AuthMiddleware(repo repository.User) func(http.Handler) http.Handler {
 				return err
 			}
 
+			if blocked, err := repo.IsTokenBlocked(ctx, claims.JTI); err != nil {
+				return handling.NewHttpError500(err)
+			} else if blocked {
+				return handling.NewHttpError401(errors.New("token has been revoked"))
+			}
+
 			ctx = spesial.AddAuthClaimsToContext(ctx, claims)
 
 			var user *entity.User

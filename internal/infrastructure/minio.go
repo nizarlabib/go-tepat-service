@@ -1,7 +1,7 @@
 package infrastructure
 
 import (
-	"log"
+	"fmt"
 	"log/slog"
 
 	"github.com/minio/minio-go/v7"
@@ -19,7 +19,7 @@ type minioClient struct {
 	bucket string
 }
 
-func NewMinio() Minio {
+func NewMinio() (*minioClient, error) {
 	viper.SetDefault("MINIO_REGION", "ap-southeast-1")
 	viper.SetDefault("MINIO_USE_SSL", false)
 
@@ -36,13 +36,13 @@ func NewMinio() Minio {
 		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
 	})
 	if err != nil {
-		log.Fatal("Failed to initiate Minio:", err)
+		return nil, fmt.Errorf("failed to initialize Minio: %w", err)
 	}
 	slog.Info("Connected to Minio Success . . .")
-	return minioClient{
+	return &minioClient{
 		client: client,
 		bucket: bucket,
-	}
+	}, nil
 }
 
 func (m minioClient) GetClient() *minio.Client {

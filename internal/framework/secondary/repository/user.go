@@ -2,12 +2,12 @@ package repository
 
 import (
 	"context"
-	// "database/sql"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"go-memolab-service/internal/entity"
 	"go-memolab-service/internal/framework/secondary/storage"
@@ -15,16 +15,11 @@ import (
 	"go-memolab-service/internal/value_object/v1/constant"
 	"go-memolab-service/internal/value_object/v1/handling"
 	"go-memolab-service/internal/value_object/v1/pagination"
-	"go-memolab-service/internal/value_object/v1/utils"
 
-	// "go-memolab-service/internal/pkg/utils"
-	// "go-memolab-service/internal/framework/secondary/repository"
 	"github.com/google/uuid"
-	// "github.com/lib/pq"
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
-	// "gorm.io/gorm/clause"
 )
 
 type User interface {
@@ -52,6 +47,8 @@ type User interface {
 	GetSessionByID(ctx context.Context, e *entity.DeviceLog) error
 	UpdateSession(ctx context.Context, e *entity.DeviceLog) error
 	DeleteSession(ctx context.Context, e *entity.DeviceLog) error
+	BlockToken(ctx context.Context, jti string, ttl int) error
+	IsTokenBlocked(ctx context.Context, jti string) (bool, error)
 }
 
 func NewUser(infra infrastructure.Postgres, redisClient *redis.Client, storage storage.Storage) User {
@@ -195,7 +192,7 @@ func (r *user) FindByPhone(ctx context.Context, e *entity.User) error {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return handling.NewHttpError404(
 				result.Error,
-				fmt.Sprintf("Your phone number %s is not registered. Please check your phone number or register an account.", e.Phone),
+				"Phone number is not registered.",
 			)
 		}
 		return handling.NewHttpError500(result.Error)
@@ -214,7 +211,7 @@ func (r *user) FindByEmail(ctx context.Context, e *entity.User) error {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return handling.NewHttpError404(
 				result.Error,
-				fmt.Sprintf("Email %s is not registered. Please check your email or register an account.", utils.RedactStr(e.Email)),
+				"Email is not registered.",
 			)
 		}
 		return handling.NewHttpError500(result.Error)
@@ -243,7 +240,7 @@ func (r *user) FindByIDWithRoles(ctx context.Context, e *entity.UserFindItemAPI)
 }
 
 func (r *user) FindByID(ctx context.Context, e *entity.User) error {
-	result := r.db.Model(e).Debug().
+	result := r.db.Model(e).
 		Preload("Role").
 		Where("id = ?", e.ID).First(&e)
 
@@ -315,7 +312,7 @@ func (r *user) VerifyExistEmail(ctx context.Context, e *entity.User) error {
 	}
 
 	if count > 0 {
-		return handling.NewHttpError(result.Error, http.StatusConflict, fmt.Sprintf("Pengguna dengan email %s sudah terdaftar.", e.Email), constant.ERR_EMAIL_EXISTS)
+		return handling.NewHttpError(result.Error, http.StatusConflict, "Email already registered.", constant.ERR_EMAIL_EXISTS)
 	}
 
 	return nil
@@ -332,7 +329,7 @@ func (r *user) VerifyExistPhone(ctx context.Context, e *entity.User) error {
 	}
 
 	if count > 0 {
-		return handling.NewHttpError(result.Error, http.StatusConflict, fmt.Sprintf("Pengguna dengan nomor telepon %s sudah terdaftar.", e.Phone), constant.ERR_PHONE_EXISTS)
+		return handling.NewHttpError(result.Error, http.StatusConflict, "Phone number already registered.", constant.ERR_PHONE_EXISTS)
 	}
 
 	return nil
@@ -490,4 +487,27 @@ func (c *user) DeleteSession(ctx context.Context, e *entity.DeviceLog) error {
 		return err
 	}
 	return nil
+}
+
+func (r *user) BlockToken(ctx context.Context, jti string, ttl int) error {
+	if jti == "" {
+		return nil
+	}
+	key := fmt.Sprintf("blocklist:%s", jti)
+	return r.client.Set(ctx, key, "1", time.Duration(ttl)*time.Second).Err()
+}
+
+func (r *user) IsTokenBlocked(ctx context.Context, jti string) (bool, error) {
+	if jti == "" {
+		return false, nil
+	}
+	key := fmt.Sprintf("blocklist:%s", jti)
+	val, err := r.client.Get(ctx, key).Result()
+	if err == redis.Nil {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return val == "1", nil
 }

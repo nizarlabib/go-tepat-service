@@ -2,7 +2,7 @@ package infrastructure
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"log/slog"
 
 	"github.com/redis/go-redis/v9"
@@ -12,20 +12,19 @@ type Redis struct {
 	client *redis.Client
 }
 
-func NewRedis(ctx context.Context, connection string) Redis {
+func NewRedis(ctx context.Context, connection string) (*Redis, error) {
 	opts, err := redis.ParseURL(connection)
 	if err != nil {
-		log.Fatal("Failed to parsing redis connection: ", err)
+		return nil, fmt.Errorf("failed to parse Redis connection: %w", err)
 	}
 	client := redis.NewClient(opts)
-	_, err = client.Ping(ctx).Result()
-	if err != nil {
-		log.Fatal("Error when pinging to redis: ", err)
+	if _, err = client.Ping(ctx).Result(); err != nil {
+		return nil, fmt.Errorf("failed to ping Redis: %w", err)
 	}
-	log.Println("Connection to Redis established successfully...")
-	return Redis{
+	slog.Info("Connection to Redis established successfully...")
+	return &Redis{
 		client: client,
-	}
+	}, nil
 }
 
 func (infra *Redis) GetClient() *redis.Client {
@@ -34,5 +33,8 @@ func (infra *Redis) GetClient() *redis.Client {
 
 func (infra *Redis) Close() error {
 	slog.Info("Closing redis connection...")
-	return infra.client.Close()
+	if infra.client != nil {
+		return infra.client.Close()
+	}
+	return nil
 }

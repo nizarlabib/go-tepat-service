@@ -2,6 +2,8 @@ package core
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/http"
@@ -37,18 +39,17 @@ func (c *auth) processLogin(ctx context.Context, e *entity.Auth) error {
 		return ErrInvalidPassword
 	}
 
-	rateLimitKey := fmt.Sprintf("rate:user:%s", e.GetUsername())
+	reqInfo, err := spesial.GetRequestInfoFromContext(ctx)
+	if err != nil {
+		return err
+	}
+	rateLimitKey := fmt.Sprintf("rate:ip:%s", reqInfo.IPAddr)
 
-	var (
-		user *entity.User
-		err  error
-	)
+	var user *entity.User
 
-	if user == nil {
-		user, err = c.attemptLoginWithEmailPass(ctx, e, rateLimitKey)
-		if err != nil {
-			return err
-		}
+	user, err = c.attemptLoginWithEmailPass(ctx, e, rateLimitKey)
+	if err != nil {
+		return err
 	}
 
 	if err = c.errIfTooManyLoginAttempts(ctx, user, rateLimitKey); err != nil {
@@ -65,15 +66,15 @@ func (c *auth) processLogin(ctx context.Context, e *entity.Auth) error {
 		return err
 	}
 
+	if err = c.saveUserLoginActivity(ctx, user); err != nil {
+		return err
+	}
+
 	err = c.generateAndInjectAuthToken(ctx, e, user)
 	if err != nil {
 		return err
 	}
 
-	err = c.saveUserLoginActivity(ctx, user)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -107,7 +108,16 @@ func (c *auth) saveUserLoginActivity(ctx context.Context, e *entity.User) error 
 
 	now := time.Now()
 
-	hashedToken, _ := bcrypt.GenerateFromPassword([]byte(e.UserDevice.SessionID), 12)
+	rememberTokenBytes := make([]byte, 32)
+	if _, err := rand.Read(rememberTokenBytes); err != nil {
+		return handling.NewHttpError500(err)
+	}
+	rememberToken := hex.EncodeToString(rememberTokenBytes)
+
+	hashedToken, err := bcrypt.GenerateFromPassword([]byte(rememberToken), 12)
+	if err != nil {
+		return handling.NewHttpError500(err)
+	}
 	e.RememberToken = convert.ToPointerStr(string(hashedToken))
 	e.LastLoggedInAt = convert.ToPointerTime(now)
 	e.LastLoggedInIP = &reqInfo.IPAddr
@@ -119,6 +129,8 @@ func (c *auth) saveUserLoginActivity(ctx context.Context, e *entity.User) error 
 	if err = c.repoUser.UpdateLoginActivity(ctx, e); err != nil {
 		return err
 	}
+
+	e.UserDevice.RememberToken = rememberToken
 
 	return nil
 }
@@ -261,6 +273,8 @@ func (c *auth) generateAuthTokenClaims(ctx context.Context, e *entity.User) *spe
 
 	if authClaims != nil && authClaims.SessionID != "" {
 		sessionID = authClaims.SessionID
+	} else if e.UserDevice != nil && e.UserDevice.RememberToken != "" {
+		sessionID = e.UserDevice.RememberToken
 	} else if e.UserDevice != nil && e.UserDevice.SessionID != "" {
 		sessionID = e.UserDevice.SessionID
 	} else {

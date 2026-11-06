@@ -5,18 +5,18 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"errors"
+	"fmt"
 	"io"
-	"log"
 )
 
 var ErrReadFile = errors.New("error reading file")
 
-func CreateAesBlock(aesKey string) cipher.Block {
+func CreateAesBlock(aesKey string) (cipher.Block, error) {
 	block, err := aes.NewCipher([]byte(aesKey))
 	if err != nil {
-		log.Fatalln(err)
+		return nil, fmt.Errorf("failed to create AES block: %w", err)
 	}
-	return block
+	return block, nil
 }
 
 func EncryptFile(file io.Reader, aesBlock cipher.Block) ([]byte, error) {

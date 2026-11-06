@@ -1,7 +1,7 @@
 package spesial
 
 import (
-	"log"
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -11,7 +11,7 @@ import (
 	"go-memolab-service/internal/value_object/v1/constant"
 	"go-memolab-service/internal/value_object/v1/handling"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/spf13/viper"
 )
 
@@ -25,6 +25,7 @@ const (
 type Payload struct {
 	UserID uint `json:"-"`
 
+	JTI            string      `json:"jti"`
 	ID             uint        `json:"id"`
 	RoleID         uuid.UUID   `json:"role_id"`
 	Role           string      `json:"role"`
@@ -34,7 +35,7 @@ type Payload struct {
 	Type           payloadType `json:"type"`
 	ImpersonatedBy uint        `json:"imp_by,omitempty"`
 	ImpersonatedAt int64       `json:"imp_at,omitempty"`
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 }
 
 func (p *Payload) IsImpersonated() bool {
@@ -49,26 +50,33 @@ func (p *Payload) ReleaseImpersonation() {
 type ResetPasswordPayload struct {
 	Email string `json:"email"`
 	Key   string `json:"key"`
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 }
 
 func GenerateAccessToken(p *Payload) (string, error) {
 	expiredInMinutes := time.Duration(viper.GetInt("JWT_ACCESS_TOKEN_EXPIRY"))
 
-	p.ExpiresAt = time.Now().Add(expiredInMinutes * time.Minute).Unix()
+	if p.JTI == "" {
+		p.JTI = uuid.NewString()
+	}
+	p.ExpiresAt = jwt.NewNumericDate(time.Now().Add(expiredInMinutes * time.Minute))
 	return createToken(p)
 }
 
 func GenerateRefreshToken(p *Payload) (string, error) {
 	expiredInMinutes := time.Duration(viper.GetInt("JWT_REFRESH_TOKEN_EXPIRY"))
 
-	p.ExpiresAt = time.Now().Add(expiredInMinutes * time.Minute).Unix()
+	if p.JTI == "" {
+		p.JTI = uuid.NewString()
+	}
+	p.Type = PayloadTypeRefresh
+	p.ExpiresAt = jwt.NewNumericDate(time.Now().Add(expiredInMinutes * time.Minute))
 	return createRefreshToken(p)
 }
 
 func createRefreshToken(p *Payload) (string, error) {
 	p.Type = PayloadTypeRefresh
-	p.IssuedAt = time.Now().Unix()
+	p.IssuedAt = jwt.NewNumericDate(time.Now())
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, p)
 	jwtKey := viper.GetString("JWT_KEY")
 	tokenString, err := token.SignedString([]byte(jwtKey))
@@ -85,7 +93,7 @@ func createToken(p *Payload) (string, error) {
 
 	p.Issuer = issuer
 	p.Type = PayloadTypeAccess
-	p.IssuedAt = time.Now().Unix()
+	p.IssuedAt = jwt.NewNumericDate(time.Now())
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, p)
 	jwtKey := viper.GetString("JWT_KEY")
@@ -109,6 +117,9 @@ func ParseResetPasswordToken(tokenString string) (*ResetPasswordPayload, error) 
 	claims := &ResetPasswordPayload{}
 	jwtKey := []byte(viper.GetString("JWT_KEY"))
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (any, error) {
+		if t.Method.Alg() != jwt.GetSigningMethod("HS256").Alg() {
+			return nil, errors.New("unexpected signing method")
+		}
 		return jwtKey, nil
 	})
 	if err != nil || !token.Valid {
@@ -122,9 +133,9 @@ func createResetPasswordToken(email string, expTime time.Time, key string) (stri
 	payload := &ResetPasswordPayload{
 		Email: email,
 		Key:   key,
-		StandardClaims: jwt.StandardClaims{
-			IssuedAt:  iat.Unix(),
-			ExpiresAt: expTime.Unix(),
+		RegisteredClaims: jwt.RegisteredClaims{
+			IssuedAt:  jwt.NewNumericDate(iat),
+			ExpiresAt: jwt.NewNumericDate(expTime),
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, payload)
@@ -139,6 +150,9 @@ func createResetPasswordToken(email string, expTime time.Time, key string) (stri
 func GetJWTKeyFunc() jwt.Keyfunc {
 	jwtKey := viper.GetString("JWT_KEY")
 	return func(t *jwt.Token) (any, error) {
+		if t.Method.Alg() != jwt.GetSigningMethod("HS256").Alg() {
+			return nil, errors.New("unexpected signing method")
+		}
 		return []byte(jwtKey), nil
 	}
 }
@@ -150,8 +164,11 @@ func ParseBearerToken(r *http.Request) (string, error) {
 	}
 
 	var tokenString string
-	if len(strings.Split(bearerToken, " ")) == 2 {
-		tokenString = strings.Split(bearerToken, " ")[1]
+	parts := strings.Split(bearerToken, " ")
+	if len(parts) == 2 && parts[0] == "Bearer" {
+		tokenString = parts[1]
+	} else {
+		return "", handling.NewHttpError401(errors.New("malformed authorization header"))
 	}
 	return tokenString, nil
 }
@@ -161,7 +178,6 @@ func ValidateToken(tokenStr string) (*Payload, error) {
 	token, err := jwt.ParseWithClaims(tokenStr, claims, GetJWTKeyFunc())
 
 	if err != nil || !token.Valid {
-		log.Printf("JWT parse error: %T: %v", err, err)
 		return nil, handling.NewHttpError401(err)
 	}
 
@@ -178,6 +194,6 @@ func ValidateToken(tokenStr string) (*Payload, error) {
 
 func GenerateIntegrationApiKeyToken(p *Payload) (string, error) {
 	oneDay := time.Hour * 24
-	p.ExpiresAt = time.Now().Add(oneDay).Unix()
+	p.ExpiresAt = jwt.NewNumericDate(time.Now().Add(oneDay))
 	return createToken(p)
 }

@@ -22,6 +22,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Auth interface {
@@ -34,6 +35,9 @@ type Auth interface {
 	Login(ctx context.Context, e *entity.Auth) error
 	RefreshToken(ctx context.Context, e *entity.Auth) error
 	Logout(ctx context.Context, e *entity.User) error
+
+	ForgotPassword(ctx context.Context, email string) error
+	ResetPassword(ctx context.Context, token, password string) error
 
 	GenerateCsrfToken(ctx context.Context, e *entity.Auth) error
 }
@@ -312,4 +316,84 @@ func aesGcm() (cipher.AEAD, error) {
 	}
 
 	return cipher.NewGCM(block)
+}
+
+func (c *auth) ForgotPassword(ctx context.Context, email string) error {
+	user := &entity.User{Email: email}
+	if err := c.repoUser.FindByEmail(ctx, user); err != nil {
+		return err
+	}
+
+	tokenBytes := make([]byte, 32)
+	if _, err := rand.Read(tokenBytes); err != nil {
+		return handling.NewHttpError500(err)
+	}
+	token := hex.EncodeToString(tokenBytes)
+
+	hashedToken, err := bcrypt.GenerateFromPassword([]byte(token), 12)
+	if err != nil {
+		return handling.NewHttpError500(err)
+	}
+
+	ttl := viper.GetInt("PASSWORD_RESET_TTL")
+	if ttl <= 0 {
+		ttl = 900
+	}
+
+	resetKey := fmt.Sprintf("password_reset:%s", email)
+	if err := c.redis.Set(ctx, resetKey, string(hashedToken), time.Duration(ttl)*time.Second).Err(); err != nil {
+		return handling.NewHttpError500(err)
+	}
+
+	reverseKey := fmt.Sprintf("password_reset_token:%s", token)
+	if err := c.redis.Set(ctx, reverseKey, email, time.Duration(ttl)*time.Second).Err(); err != nil {
+		return handling.NewHttpError500(err)
+	}
+
+	return nil
+}
+
+func (c *auth) ResetPassword(ctx context.Context, token, password string) error {
+	reverseKey := fmt.Sprintf("password_reset_token:%s", token)
+	email, err := c.redis.Get(ctx, reverseKey).Result()
+	if err == redis.Nil {
+		return handling.NewHttpError(nil, http.StatusBadRequest, "Invalid or expired reset token", constant.ERR_TOKEN_EXPIRED)
+	}
+	if err != nil {
+		return handling.NewHttpError500(err)
+	}
+
+	resetKey := fmt.Sprintf("password_reset:%s", email)
+	storedHash, err := c.redis.Get(ctx, resetKey).Result()
+	if err == redis.Nil {
+		return handling.NewHttpError(nil, http.StatusBadRequest, "Invalid or expired reset token", constant.ERR_TOKEN_EXPIRED)
+	}
+	if err != nil {
+		return handling.NewHttpError500(err)
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(token)); err != nil {
+		return handling.NewHttpError(nil, http.StatusBadRequest, "Invalid or expired reset token", constant.ERR_TOKEN_EXPIRED)
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 12)
+	if err != nil {
+		return handling.NewHttpError500(err)
+	}
+
+	user := &entity.User{Email: email}
+	if err := c.repoUser.FindByEmail(ctx, user); err != nil {
+		return err
+	}
+
+	user.Password = string(hashedPassword)
+	if err := c.repoUser.UpdatePassword(ctx, user); err != nil {
+		return err
+	}
+
+	if err := c.redis.Del(ctx, resetKey, reverseKey).Err(); err != nil {
+		return handling.NewHttpError500(err)
+	}
+
+	return nil
 }

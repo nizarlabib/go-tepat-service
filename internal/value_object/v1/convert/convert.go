@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"go-memolab-service/internal/value_object/v1/constant"
 	"go-memolab-service/internal/value_object/v1/handling"
-	"io/ioutil"
 	"math"
 	"math/big"
 	"math/rand"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -148,7 +148,7 @@ func UUIDToString(id uuid.UUID) string {
 
 func EncodeFileToBase64(path string) (string, error) {
 	// Baca semua isi file
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return "", err
 	}

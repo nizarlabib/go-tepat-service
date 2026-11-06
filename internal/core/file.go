@@ -168,13 +168,12 @@ func (c *file) UploadFiles(ctx context.Context, fs []*entity.FileUpload) error {
 	}
 
 	uploadCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	if err := c.storage.UploadFiles(uploadCtx, fileObjects); err != nil {
-		cancel()
 		return err
 	}
 
 	if err := c.repo.Create(ctx, files...); err != nil {
-		cancel()
 		c.storage.DeleteFiles(ctx, fileObjects)
 		return err
 	}

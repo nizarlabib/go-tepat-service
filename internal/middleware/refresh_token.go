@@ -4,20 +4,21 @@ import (
 	"context"
 	"net/http"
 
-	// "slices"
-	// "time"
-
 	"go-memolab-service/internal/entity"
+	"go-memolab-service/internal/framework/secondary/repository"
 	"go-memolab-service/internal/spesial"
 	"go-memolab-service/internal/value_object/v1/handling"
 	"go-memolab-service/internal/value_object/v1/router"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
 )
 
-func RefreshTokenMiddleware(ctx context.Context) func(http.Handler) http.Handler {
+func RefreshTokenMiddleware(repo repository.User) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return router.RootHandler(func(w http.ResponseWriter, r *http.Request) error {
+			ctx := r.Context()
+
 			tokenString, err := spesial.ParseBearerToken(r)
 			if err != nil {
 				return err
@@ -35,37 +36,21 @@ func RefreshTokenMiddleware(ctx context.Context) func(http.Handler) http.Handler
 			}
 
 			user := entity.NewUserFromID(claims.ID)
-			// if err := core.FindUserByID(ctx, user); err != nil {
-			// 	return handling.NewHttpError401(err)
-			// }
-
-			if user.RememberToken == nil {
+			if err = repo.FindByID(ctx, user); err != nil {
 				return handling.NewHttpError401(err)
 			}
 
-			switch user.AccountStatus {
-			case entity.UserAccountStatusSuspended:
-				return handling.NewHttpError401(nil)
+			if user.RememberToken == nil || *user.RememberToken == "" {
+				return handling.NewHttpError401(err)
 			}
 
-			// sessions, err := core.GetSessions(ctx, user.ID)
-			// if err != nil {
-			// 	return err
-			// }
+			if err = bcrypt.CompareHashAndPassword([]byte(*user.RememberToken), []byte(claims.SessionID)); err != nil {
+				return handling.NewHttpError401(err)
+			}
 
-			// sessionIdx := slices.IndexFunc(sessions, func(s *entity.DeviceLog) bool {
-			// 	return s.SessionID == claims.SessionID
-			// })
-
-			// // if sessionIdx < 0 {
-			// // 	return handling.NewHttpError401(nil)
-			// // }
-
-			// if sessionIdx > -1 {
-			// 	session := sessions[sessionIdx]
-			// 	session.LastActivityAt = time.Now()
-			// 	api.UpdateSession(ctx, session)
-			// }
+			if user.AccountStatus == entity.UserAccountStatusSuspended {
+				return handling.NewHttpError401(nil)
+			}
 
 			ctx = spesial.AddAuthClaimsToContext(ctx, claims)
 			ctx = spesial.AddUserIDToContext(ctx, claims.ID)

@@ -1,0 +1,864 @@
+openapi: 3.0.0
+info:
+  title: Go Memolab Service API
+  description: |
+    A secure Go backend service built with Chi router, PostgreSQL, Redis, and MinIO.
+    Provides authentication, user management, and file storage capabilities.
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development server
+  - url: https://api.example.com/api/v1
+    description: Production server
+tags:
+  - name: Authentication
+    description: User authentication, registration, login, token management
+  - name: Users
+    description: User management and profile operations
+  - name: Files
+    description: File upload, download, and management
+  - name: System
+    description: Health checks and system endpoints
+paths:
+  /ping:
+    get:
+      summary: Heartbeat check
+      description: Simple heartbeat endpoint to verify the service is running.
+      tags: [System]
+      responses:
+        200:
+          description: Service is alive
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: OK
+
+  /health:
+    get:
+      summary: Health check
+      description: Checks the health of PostgreSQL and Redis connections.
+      tags: [System]
+      responses:
+        200:
+          description: All dependencies healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: OK
+                  timestamp:
+                    type: string
+                    format: date-time
+                  checks:
+                    type: object
+                    additionalProperties:
+                      type: object
+                      properties:
+                        status:
+                          type: string
+                        latency_ms:
+                          type: integer
+        503:
+          description: One or more dependencies unhealthy
+
+  /ready:
+    get:
+      summary: Readiness check
+      description: Indicates the service is ready to serve traffic.
+      tags: [System]
+      responses:
+        200:
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ready
+
+  /auth/csrf_token:
+    get:
+      summary: Generate CSRF token
+      description: Generates a CSRF token for state-changing operations.
+      tags: [Authentication]
+      responses:
+        200:
+          description: CSRF token generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: CSRF token generated
+                  data:
+                    type: object
+                    properties:
+                      csrf_token:
+                        type: string
+                        example: "a1b2c3d4..."
+
+  /auth/check-existing-user-by-email:
+    post:
+      summary: Check if email exists
+      description: Checks whether an email address is already registered.
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+      responses:
+        200:
+          description: Email is available
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: email belum terdaftar
+        409:
+          description: Email already registered
+
+  /auth/check-existing-user-by-phone:
+    post:
+      summary: Check if phone exists
+      description: Checks whether a phone number is already registered.
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                phone:
+                  type: string
+                  example: +628123456789
+      responses:
+        200:
+          description: Phone is available
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: phone belum terdaftar
+        409:
+          description: Phone already registered
+
+  /auth/register:
+    post:
+      summary: Register a new user
+      description: Registers a new user account with profile information.
+      tags: [Authentication]
+      security: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - fullname
+                - email
+                - password
+                - phone
+                - gender
+              properties:
+                fullname:
+                  type: string
+                  example: John Doe
+                email:
+                  type: string
+                  format: email
+                  example: john@example.com
+                password:
+                  type: string
+                  format: password
+                  example: securePassword123
+                phone:
+                  type: string
+                  example: +628123456789
+                gender:
+                  type: string
+                  enum: [male, female]
+                  example: male
+                role_id:
+                  type: string
+                  format: uuid
+                  example: 550e8400-e29b-41d4-a716-446655440000
+                profile_picture:
+                  type: string
+                  format: binary
+      responses:
+        200:
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: user successfuly registered
+        400:
+          description: Validation error
+        409:
+          description: Email or phone already registered
+
+  /auth/login:
+    post:
+      summary: Login
+      description: Authenticates a user and returns access and refresh tokens.
+      tags: [Authentication]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  example: user@example.com
+                password:
+                  type: string
+                  format: password
+                  example: securePassword123
+      responses:
+        200:
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Login Sucessfull
+                  data:
+                    type: object
+                    properties:
+                      access_token:
+                        type: string
+                        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                      refresh_token:
+                        type: string
+                        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        401:
+          description: Invalid credentials
+        400:
+          description: CSRF token required or validation error
+        429:
+          description: Too many login attempts
+
+  /auth/logout:
+    post:
+      summary: Logout
+      description: Logs out the current user and revokes the access token.
+      tags: [Authentication]
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: Logged out successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: success logout
+        401:
+          description: Unauthorized - missing or invalid token
+
+  /auth/me:
+    get:
+      summary: Get current user profile
+      description: Returns the authenticated user's profile information.
+      tags: [Authentication]
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: User profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: success getting me
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 1
+                      fullname:
+                        type: string
+                        example: John Doe
+                      email:
+                        type: string
+                        example: john@example.com
+                      role:
+                        type: string
+                        example: user
+                      role_id:
+                        type: string
+                        format: uuid
+                      permissions:
+                        type: string
+        401:
+          description: Unauthorized
+
+  /auth/me/delete-account:
+    delete:
+      summary: Delete account
+      description: Deletes the authenticated user's account.
+      tags: [Authentication]
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: Account deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: akun berhasil dihapus
+        401:
+          description: Unauthorized
+        400:
+          description: CSRF token required
+
+  /auth/profile:
+    put:
+      summary: Update profile
+      description: Updates the authenticated user's profile information.
+      tags: [Authentication]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                fullname:
+                  type: string
+                phone:
+                  type: string
+                gender:
+                  type: string
+                  enum: [male, female]
+      responses:
+        200:
+          description: Profile updated
+        401:
+          description: Unauthorized
+        400:
+          description: CSRF token required or validation error
+
+  /auth/profile/photo:
+    put:
+      summary: Update profile photo
+      description: Updates the authenticated user's profile photo.
+      tags: [Authentication]
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: Profile photo updated
+        401:
+          description: Unauthorized
+
+  /auth/profile/download/{filename}:
+    get:
+      summary: Download profile file
+      description: Downloads a file associated with the user's profile.
+      tags: [Authentication]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: filename
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: File content
+        401:
+          description: Unauthorized
+        403:
+          description: Forbidden - not your file
+
+  /auth/change-password:
+    put:
+      summary: Change password
+      description: Changes the authenticated user's password.
+      tags: [Authentication]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - old_password
+                - new_password
+              properties:
+                old_password:
+                  type: string
+                  format: password
+                new_password:
+                  type: string
+                  format: password
+      responses:
+        200:
+          description: Password changed
+        401:
+          description: Unauthorized
+        400:
+          description: CSRF token required or validation error
+
+  /auth/verify-user-password:
+    post:
+      summary: Verify user password
+      description: Verifies the authenticated user's password.
+      tags: [Authentication]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - password
+              properties:
+                password:
+                  type: string
+                  format: password
+      responses:
+        200:
+          description: Password verified
+        401:
+          description: Unauthorized
+
+  /auth/activity-logs:
+    get:
+      summary: Get activity logs
+      description: Retrieves activity logs for the authenticated user.
+      tags: [Authentication]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+            maximum: 50
+      responses:
+        200:
+          description: Activity logs
+        401:
+          description: Unauthorized
+
+  /auth/switch_role:
+    post:
+      summary: Switch user role
+      description: Switches the authenticated user's active role.
+      tags: [Authentication]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - role_id
+              properties:
+                role_id:
+                  type: string
+                  format: uuid
+      responses:
+        200:
+          description: Role switched
+        401:
+          description: Unauthorized
+        400:
+          description: CSRF token required or validation error
+
+  /auth/impersonate/{user_id}:
+    post:
+      summary: Impersonate user
+      description: Impersonates another user (super admin only).
+      tags: [Authentication]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: user_id
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Impersonation successful
+        401:
+          description: Unauthorized
+        403:
+          description: Forbidden - super admin required
+
+  /auth/release_impersonation/{user_id}:
+    post:
+      summary: Release impersonation
+      description: Releases user impersonation.
+      tags: [Authentication]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: user_id
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Impersonation released
+        401:
+          description: Unauthorized
+
+  /auth/forgot-password:
+    post:
+      summary: Forgot password
+      description: Initiates a password reset flow by sending a reset token to the user's email.
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+      responses:
+        200:
+          description: Reset email sent
+        400:
+          description: CSRF token required or validation error
+
+  /auth/forgot-password/phone:
+    post:
+      summary: Forgot password by phone
+      description: Initiates a password reset flow via phone/SMS.
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - phone
+              properties:
+                phone:
+                  type: string
+      responses:
+        200:
+          description: Reset SMS sent
+        400:
+          description: CSRF token required or validation error
+
+  /auth/reset-password:
+    post:
+      summary: Reset password
+      description: Resets the user's password using a reset token.
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+                - password
+              properties:
+                token:
+                  type: string
+                password:
+                  type: string
+                  format: password
+      responses:
+        200:
+          description: Password reset successful
+        400:
+          description: CSRF token required, validation error, or invalid/expired token
+
+  /auth/refresh-token:
+    post:
+      summary: Refresh access token
+      description: Refreshes the access token using a valid refresh token.
+      tags: [Authentication]
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: New tokens issued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: refresh token sucessfull
+                  data:
+                    type: object
+                    properties:
+                      access_token:
+                        type: string
+                      refresh_token:
+                        type: string
+        401:
+          description: Unauthorized - invalid or expired refresh token
+
+  /users:
+    get:
+      summary: List users
+      description: Retrieves a paginated list of users with optional filtering.
+      tags: [Users]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+            maximum: 50
+        - in: query
+          name: name
+          schema:
+            type: string
+        - in: query
+          name: email
+          schema:
+            type: string
+        - in: query
+          name: phone
+          schema:
+            type: string
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending, suspended, verified, rejected, deleted]
+        - in: query
+          name: role_id
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: order_by
+          schema:
+            type: string
+      responses:
+        200:
+          description: Paginated user list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        fullname:
+                          type: string
+                        email:
+                          type: string
+                        role:
+                          type: object
+        401:
+          description: Unauthorized
+        403:
+          description: Forbidden - insufficient permissions
+
+  /files/{path}/bulk-upload:
+    post:
+      summary: Upload files
+      description: Uploads one or more files to the specified path.
+      tags: [Files]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                fields:
+                  type: string
+                  description: Comma-separated list of form field names for files
+              required:
+                - fields
+      responses:
+        200:
+          description: Files uploaded successfully
+        401:
+          description: Unauthorized
+        400:
+          description: Validation error
+
+  /files/{path}/{filename}:
+    get:
+      summary: Download file
+      description: Downloads a file by path and filename.
+      tags: [Files]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: path
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: filename
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: File content
+        401:
+          description: Unauthorized
+        404:
+          description: File not found
+
+    delete:
+      summary: Delete file
+      description: Deletes a file by path and filename.
+      tags: [Files]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: path
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: filename
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: File deleted
+        401:
+          description: Unauthorized
+        404:
+          description: File not found
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT access token obtained from /auth/login or /auth/refresh-token.
+        Format: Authorization: Bearer <token>
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        error_code:
+          type: string
+        status:
+          type: integer
+
+    Pagination:
+      type: object
+      properties:
+        total_data:
+          type: integer
+        limit:
+          type: integer
+        current_page:
+          type: integer
+        total_page:
+          type: integer

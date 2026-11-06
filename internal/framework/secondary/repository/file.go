@@ -50,10 +50,10 @@ func (r *file) SumSizeByUploaderID(ctx context.Context, uID uint) (int64, error)
 
 	err := r.db.WithContext(ctx).Raw("SELECT COALESCE(SUM(size), 0) AS total_usage FROM files WHERE uploader_id = ? AND created_at::date = CURRENT_DATE", uID).Scan(&totalSize).Error
 	if err != nil {
-		return 0, nil
+		return 0, err
 	}
 
-	return 0, nil
+	return totalSize, nil
 }
 
 func (r *file) FindByID(ctx context.Context, e *entity.File) error {

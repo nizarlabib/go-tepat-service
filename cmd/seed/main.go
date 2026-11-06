@@ -23,11 +23,21 @@ func main() {
 
 	infrastructure.NewViper()
 
-	db := infrastructure.NewPostgres(viper.GetString("POSTGRES_CONNECTION")).GetClientGorm()
+	if err := infrastructure.ValidateConfig(); err != nil {
+		logger.Error("configuration validation failed", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
 
-	permissions := seedPermissions(db)
+	db, err := infrastructure.NewPostgres(viper.GetString("POSTGRES_CONNECTION"))
+	if err != nil {
+		logger.Error("failed to connect to PostgreSQL", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+	defer db.Close()
 
-	seedRoles(permissions, db)
+	permissions := seedPermissions(db.GetClientGorm())
+
+	seedRoles(permissions, db.GetClientGorm())
 
 	logger.Info("Seeding process completed")
 }

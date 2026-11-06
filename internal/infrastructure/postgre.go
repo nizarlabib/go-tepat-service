@@ -3,6 +3,7 @@ package infrastructure
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
 	"log/slog"
 	"os"
@@ -41,21 +42,24 @@ func (p postgresClient) GetClientGorm() *gorm.DB {
 
 func (p postgresClient) Close() {
 	slog.Info("Closing PostgreSQL connection...")
-	p.client.Close()
+	if p.client != nil {
+		if err := p.client.Close(); err != nil {
+			slog.Error("error closing PostgreSQL connection", slog.String("error", err.Error()))
+		}
+	}
 }
 
-func NewPostgres(connection string) Postgres {
+func NewPostgres(connection string) (*postgresClient, error) {
 	slog.Info("Connecting to PostgreSQL...")
 
-	// Initialize sql.DB client
 	conn, err := sql.Open("postgres", connection)
 	if err != nil {
-		log.Fatal("Failed to connect to PostgreSQL:", err)
+		return nil, fmt.Errorf("failed to open PostgreSQL connection: %w", err)
 	}
 
-	// Test the connection
 	if err = conn.Ping(); err != nil {
-		log.Fatal("Failed to connect to PostgreSQL:", err)
+		conn.Close()
+		return nil, fmt.Errorf("failed to ping PostgreSQL: %w", err)
 	}
 
 	isLocal := viper.Get("APP_ENV") == "local"
@@ -77,20 +81,22 @@ func NewPostgres(connection string) Postgres {
 		Logger: gormLogger,
 	}
 
-	// Initialize GORM client
 	gormDB, err := gorm.Open(gormPostgres.Open(connection), gormConfig)
 	if err != nil {
-		log.Fatal("Failed to initialize GORM for PostgreSQL:", err)
+		conn.Close()
+		return nil, fmt.Errorf("failed to initialize GORM for PostgreSQL: %w", err)
 	}
 
-	log.Println("Connection to PostgreSQL established successfully...")
+	slog.Info("Connection to PostgreSQL established successfully...")
 
 	db = gormDB
 
-	// Return the client
-	return postgresClient{client: conn}
+	return &postgresClient{client: conn}, nil
 }
 
 func NewDBTrx(ctx context.Context) *gorm.DB {
+	if db == nil {
+		return nil
+	}
 	return db.WithContext(ctx).Begin()
 }

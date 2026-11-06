@@ -1,73 +1,49 @@
 package main
 
 import (
-	"fmt"
-	"log"
-
+	"log/slog"
 	"os"
 
 	"go-memolab-service/internal/entity"
-	// "go-memolab-service/internal/entity/master"
-
 	infrastructure2 "go-memolab-service/internal/infrastructure"
 
 	"github.com/spf13/viper"
 )
 
 func main() {
-
 	infrastructure2.NewViper()
-	db := infrastructure2.NewPostgres(viper.GetString("POSTGRES_CONNECTION"))
-	// db.GetClientGorm().Config.DisableForeignKeyConstraintWhenMigrating = true
 
-	enumTypes := []string{
-		// `CREATE OR REPLACE FUNCTION "public"."uuid_generate_v4"()
-		// RETURNS "pg_catalog"."uuid" AS '$libdir/uuid-ossp', 'uuid_generate_v4'
-		// LANGUAGE c VOLATILE STRICT
-		// PARALLEL SAFE
-		// COST 1;`,
-		// `CREATE TYPE gender AS ENUM ('male', 'female');`,
-		// `CREATE TYPE user_account_status AS ENUM ('pending', 'suspended', 'verified', 'rejected', 'deleted');`,
+	if err := infrastructure2.ValidateConfig(); err != nil {
+		slog.Error("configuration validation failed", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
+
+	db, err := infrastructure2.NewPostgres(viper.GetString("POSTGRES_CONNECTION"))
+	if err != nil {
+		slog.Error("failed to connect to PostgreSQL", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+	defer db.Close()
+
+	enumTypes := []string{}
 
 	for _, enumSQL := range enumTypes {
 		if err := db.GetClientGorm().Exec(enumSQL).Error; err != nil {
-			fmt.Errorf("failed to create enum type: %w", err)
-			return
+			slog.Error("failed to create enum type", slog.String("error", err.Error()))
+			os.Exit(1)
 		}
 	}
 
-	err := db.GetClientGorm().AutoMigrate(
+	if err := db.GetClientGorm().AutoMigrate(
 		entity.File{},
-		// entity.User{},
-		// entity.Role{},
-		// entity.DeviceLog{},
-		// entity.Permission{},
-	)
-
-	if err != nil {
-		log.Fatalf("error: %v", err)
-		return
+		entity.User{},
+		entity.Role{},
+		entity.DeviceLog{},
+		entity.Permission{},
+	); err != nil {
+		slog.Error("migration failed", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
 
-	// List SQL file paths
-	sqlPaths := []string{
-		// "cmd/migration/query.sql",
-	}
-
-	// execute SQL statements
-	for _, sqlPath := range sqlPaths {
-		sqlBytes, err := os.ReadFile(sqlPath)
-		if err != nil {
-			log.Fatalf("failed to read SQL file: %v", err)
-		}
-
-		sqlString := string(sqlBytes)
-
-		if err := db.GetClientGorm().Exec(sqlString).Error; err != nil {
-			log.Fatalf("failed to execute SQL: %v", err)
-		}
-	}
-
-	log.Printf("success")
+	slog.Info("migration success")
 }

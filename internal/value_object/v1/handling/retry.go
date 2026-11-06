@@ -3,8 +3,8 @@ package handling
 import (
 	"fmt"
 	"log"
-	"time"
 	"strings"
+	"time"
 )
 
 const maxUnauthorizedRetries = 10

@@ -29,7 +29,7 @@ func NewPagination(query url.Values) *Pagination {
 	if err != nil || limit < 1 {
 		limit = 10
 	}
-	
+
 	if limit > 50 {
 		limit = 50
 	}
@@ -53,8 +53,8 @@ func (p *Pagination) GetLimit() int {
 	if p.Limit <= 0 {
 		p.Limit = 10
 	}
-	if p.Limit > 100 {
-		p.Limit = 100
+	if p.Limit > 50 {
+		p.Limit = 50
 	}
 	return p.Limit
 }

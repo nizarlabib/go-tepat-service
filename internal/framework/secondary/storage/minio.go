@@ -53,7 +53,10 @@ func (s *minioStorage) uploadFile(ctx context.Context, e *FileObject) error {
 	}
 	defer reader.Close()
 
-	aesBlock := encryption.CreateAesBlock(s.aesKey)
+	aesBlock, err := encryption.CreateAesBlock(s.aesKey)
+	if err != nil {
+		return handling.NewHttpError500(err)
+	}
 	encryptedText, err := encryption.EncryptFile(reader, aesBlock)
 
 	e.Size = int64(binary.Size(encryptedText))
@@ -128,7 +131,10 @@ func (s *minioStorage) GetFile(ctx context.Context, key string) ([]byte, error) 
 		return nil, handling.NewHttpError500(err)
 	}
 
-	aesBlock := encryption.CreateAesBlock(s.aesKey)
+	aesBlock, err := encryption.CreateAesBlock(s.aesKey)
+	if err != nil {
+		return nil, handling.NewHttpError500(err)
+	}
 	decrypted, err := encryption.Decrypt(bytes, aesBlock)
 	if err != nil {
 		return nil, handling.NewHttpError(err, http.StatusUnprocessableEntity, "error decrypting file", constant.ERR_UNKNOWN)
@@ -138,19 +144,17 @@ func (s *minioStorage) GetFile(ctx context.Context, key string) ([]byte, error) 
 }
 
 func (s *minioStorage) uploadEncryptedText(ctx context.Context, encryptedText []byte, objectName string, objectSize int64, objectContentType string) error {
-	go func() {
-		if objectContentType == "" {
-			objectContentType = "application/octet-stream"
-		}
-		_, err := s.client.PutObject(ctx, s.bucket, objectName, bytes.NewReader(encryptedText), objectSize, minio.PutObjectOptions{
-			ContentType: "application/octet-stream",
-			UserTags: map[string]string{
-				"service": "go-memolab-service",
-			},
-		})
-		if err != nil {
-			fmt.Printf("Minio: %v\n", err)
-		}
-	}()
+	if objectContentType == "" {
+		objectContentType = "application/octet-stream"
+	}
+	_, err := s.client.PutObject(ctx, s.bucket, objectName, bytes.NewReader(encryptedText), objectSize, minio.PutObjectOptions{
+		ContentType: "application/octet-stream",
+		UserTags: map[string]string{
+			"service": "go-memolab-service",
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to upload to MinIO: %w", err)
+	}
 	return nil
 }

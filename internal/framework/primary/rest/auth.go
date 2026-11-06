@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
 	"mime"
 	"net/http"
 	"path/filepath"
@@ -129,7 +130,7 @@ func (c *restAuth) Start(ctx context.Context) chi.Router {
 
 	// update profile photo request
 
-	r.With(middleware.RefreshTokenMiddleware(ctx)).
+	r.With(middleware.RefreshTokenMiddleware(c.repoUser)).
 		Method(http.MethodPost, "/refresh-token", router.RootHandler(c.RefreshToken))
 
 	return r
@@ -190,6 +191,10 @@ func (c *restAuth) GetActivityLogs(w http.ResponseWriter, r *http.Request) error
 }
 
 func (c *restAuth) DeleteAccount(w http.ResponseWriter, r *http.Request) error {
+	if err := validateCsrf(r, c); err != nil {
+		return err
+	}
+
 	userID, err := spesial.GetUserIDFromContext(r.Context())
 	if err != nil {
 		return err
@@ -209,6 +214,10 @@ func (c *restAuth) DeleteAccount(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (c *restAuth) Register(w http.ResponseWriter, r *http.Request) error {
+	if err := validateCsrf(r, c); err != nil {
+		return err
+	}
+
 	var err error
 
 	if r.MultipartForm == nil {
@@ -321,6 +330,10 @@ func (c *restAuth) Logout(w http.ResponseWriter, r *http.Request) error {
 	if err := c.apiAuth.Logout(ctx, entity.NewUserFromID(userID)); err != nil {
 		return err
 	}
+
+	if err := c.repoUser.BlockToken(ctx, authClaims.JTI, int(time.Until(authClaims.ExpiresAt.Time).Seconds())); err != nil {
+		slog.Warn("failed to block token on logout", slog.String("jti", authClaims.JTI), slog.String("error", err.Error()))
+	}
 	response.Success("success logout", w)
 	return nil
 }
@@ -359,6 +372,10 @@ func (c *restAuth) ForgotPassword(w http.ResponseWriter, r *http.Request) error 
 }
 
 func (c *restAuth) ResetPassword(w http.ResponseWriter, r *http.Request) error {
+	if err := validateCsrf(r, c); err != nil {
+		return err
+	}
+
 	req := resetPasswordForm{}
 	if err := validator.DecodeValidate(r.Body, &req); err != nil {
 		return err
@@ -486,6 +503,10 @@ func (c *restAuth) VerifyUserPassword(w http.ResponseWriter, r *http.Request) er
 }
 
 func (c *restAuth) UpdateProfile(w http.ResponseWriter, r *http.Request) error {
+	if err := validateCsrf(r, c); err != nil {
+		return err
+	}
+
 	ctx := r.Context()
 
 	userID, err := spesial.GetUserIDFromContext(r.Context())
@@ -530,6 +551,10 @@ func (c *restAuth) RefreshToken(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
+	if err := c.repoUser.BlockToken(ctx, authClaims.JTI, int(time.Until(authClaims.ExpiresAt.Time).Seconds())); err != nil {
+		slog.Warn("failed to block old refresh token", slog.String("jti", authClaims.JTI), slog.String("error", err.Error()))
+	}
+
 	e := &entity.Auth{
 		UserID:       userID,
 		SessionID:    authClaims.SessionID,
@@ -545,6 +570,10 @@ func (c *restAuth) RefreshToken(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (c *restAuth) ChangePassword(w http.ResponseWriter, r *http.Request) error {
+	if err := validateCsrf(r, c); err != nil {
+		return err
+	}
+
 	userID, err := spesial.GetUserIDFromContext(r.Context())
 	if err != nil {
 		return err
@@ -721,6 +750,10 @@ func (c *restAuth) DownloadFile(w http.ResponseWriter, r *http.Request) error {
 // }
 
 func (c *restAuth) SwitchRole(w http.ResponseWriter, r *http.Request) error {
+	if err := validateCsrf(r, c); err != nil {
+		return err
+	}
+
 	userID, err := spesial.GetUserIDFromContext(r.Context())
 	if err != nil {
 		return err

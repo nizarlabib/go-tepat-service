@@ -19,7 +19,9 @@ import (
 	"go-memolab-service/internal/infrastructure"
 	appmiddleware "go-memolab-service/internal/middleware"
 	"go-memolab-service/internal/pkg/health"
+	"go-memolab-service/internal/pkg/middleware"
 	"go-memolab-service/internal/pkg/ratelimiter"
+	"go-memolab-service/internal/pkg/security"
 	"go-memolab-service/internal/spesial"
 	"go-memolab-service/internal/value_object/v1/helper"
 
@@ -36,22 +38,43 @@ func main() {
 
 	infrastructure.NewViper()
 
+	if err := infrastructure.ValidateConfig(); err != nil {
+		slog.Error("configuration validation failed", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+
 	helper.InitLog(ctx)
 
-	infrastructure.NewSentry(sentry.ClientOptions{
+	var sentryInitialized bool
+	if err := infrastructure.NewSentry(sentry.ClientOptions{
 		Dsn:              viper.GetString("SENTRY_DSN"),
 		EnableTracing:    viper.GetBool("SENTRY_ENABLE_TRACKING"),
 		TracesSampleRate: viper.GetFloat64("SENTRY_TRACES_SAMPLE_RATE"),
-	})
-	defer sentry.Flush(2 * time.Second)
+	}); err != nil {
+		slog.Warn("failed to initialize Sentry", slog.String("error", err.Error()))
+	} else {
+		sentryInitialized = true
+	}
 
-	db := infrastructure.NewPostgres(viper.GetString("POSTGRES_CONNECTION"))
+	db, err := infrastructure.NewPostgres(viper.GetString("POSTGRES_CONNECTION"))
+	if err != nil {
+		slog.Error("failed to connect to PostgreSQL", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
 	defer db.Close()
 
-	redis := infrastructure.NewRedis(ctx, viper.GetString("REDIS_CONNECTION"))
+	redis, err := infrastructure.NewRedis(ctx, viper.GetString("REDIS_CONNECTION"))
+	if err != nil {
+		slog.Error("failed to connect to Redis", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
 	defer redis.Close()
 
-	minioClient := infrastructure.NewMinio()
+	minioClient, err := infrastructure.NewMinio()
+	if err != nil {
+		slog.Error("failed to connect to MinIO", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
 	minioService := storage.NewMinio(minioClient)
 
 	storageService := core.NewStorage(
@@ -88,7 +111,7 @@ func main() {
 	healthCheckRoute := health.NewHealthRoute()
 	if err := healthCheckRoute.Register(
 		db,
-		// redis,
+		redis,
 	); err != nil {
 		slog.Error("failed to register health check route", slog.Any("error", err))
 		os.Exit(1)
@@ -97,16 +120,61 @@ func main() {
 	r := chi.NewRouter()
 	r.Use(chimiddleware.Logger)
 	r.Use(chimiddleware.Recoverer)
-	// Important: Chi has a middleware stack and thus it is important to put the
-	// Sentry handler on the appropriate place. If using middleware.Recoverer,
-	// the Sentry middleware must come afterwards (and configure it with
-	// Repanic: true)
+	r.Use(security.CORS)
+	r.Use(security.SecurityHeaders)
+	r.Use(middleware.RequestID)
+	r.Use(middleware.BodyLimit(10 << 20))
+	r.Use(middleware.ContentType("application/json"))
+	r.Use(middleware.Compression)
 	r.Use(sentryHandler.Handle)
 	r.Use(chimiddleware.RealIP)
 	r.Use(ratelimiter.Middleware(10000, 15*time.Minute))
 	r.Use(spesial.WithRequestInfo)
 	r.Use(chimiddleware.Heartbeat("/ping"))
 	r.Use(healthCheckRoute.Middleware("/health"))
+	r.Get("/ready", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"status":"ready"}`))
+	})
+
+	// Swagger UI (only in non-production environments)
+	if viper.GetString("APP_ENV") != "production" {
+		r.Get("/swagger/openapi.yaml", func(w http.ResponseWriter, r *http.Request) {
+			http.ServeFile(w, r, "docs/openapi.yaml")
+		})
+		r.Get("/swagger/index.html", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			html := `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Go Memolab Service - API Documentation</title>
+  <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui.css" />
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  <script src="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui-bundle.js"></script>
+  <script src="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui-standalone-preset.js"></script>
+  <script>
+    const ui = SwaggerUIBundle({
+      url: "/swagger/openapi.yaml",
+      dom_id: "#swagger-ui",
+      deepLinking: true,
+      presets: [
+        SwaggerUIBundle.presets.apis,
+        SwaggerUIStandalonePreset
+      ],
+      layout: "StandaloneLayout"
+    })
+    window.ui = ui
+  </script>
+</body>
+</html>`
+			_, _ = w.Write([]byte(html))
+		})
+	}
 
 	r.Route("/api/v1", func(r chi.Router) {
 		// Public routes
@@ -122,13 +190,14 @@ func main() {
 	})
 
 	httpPort := fmt.Sprintf(":%v", viper.GetString("HTTP_PORT"))
-	httpTimeout := time.Duration(150) * time.Second
+	httpTimeout := time.Duration(30) * time.Second
 
 	httpServer := &http.Server{
 		Addr:         httpPort,
 		Handler:      http.TimeoutHandler(r, httpTimeout, ""),
 		ReadTimeout:  httpTimeout,
 		WriteTimeout: httpTimeout + 2,
+		IdleTimeout:  60 * time.Second,
 	}
 
 	go func() {
@@ -141,11 +210,15 @@ func main() {
 	<-ctx.Done()
 	slog.Info("Received shutdown signal, shutting down server...")
 
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	if err := httpServer.Shutdown(shutdownCtx); err != nil {
 		slog.Error("unexpected error during server shutdown", slog.Any("bind_addr", err))
+	}
+
+	if sentryInitialized {
+		sentry.Flush(2 * time.Second)
 	}
 
 	select {

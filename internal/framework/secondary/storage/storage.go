@@ -80,9 +80,9 @@ func FileFromBuffer(b *bytes.Buffer) File {
 }
 
 type FileObject struct {
-	Name string
-	Size int64
-	File File
+	Name        string
+	Size        int64
+	File        File
 	ContentType string // Optional, can be used to store MIME type
 }
 

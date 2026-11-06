@@ -83,11 +83,11 @@ func (a *auth) RefreshToken(ctx context.Context, e *entity.Auth) error {
 }
 
 func (a *auth) ForgotPassword(ctx context.Context, e *entity.Auth) error {
-	return nil
+	return a.core.ForgotPassword(ctx, e.Username)
 }
 
 func (a *auth) ResetPassword(ctx context.Context, e *entity.ResetPassword) error {
-	return nil
+	return a.core.ResetPassword(ctx, e.Token, e.Password)
 }
 
 func (a *auth) ChangePassword(ctx context.Context, userID uint, oldPassword, newPassword string) error {

@@ -2,9 +2,10 @@ package infrastructure
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"log/slog"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
@@ -12,21 +13,18 @@ import (
 
 func NewViper() {
 	// Load the .env file using godotenv
-	fmt.Println("Loading .env file", os.Getenv("ENV"))
 	if err := godotenv.Load(); err != nil {
 		slog.WarnContext(context.Background(), "No .env file found")
 	}
 
-	viper.SetConfigName(".env")   // Nama file tanpa ekstensi
-	viper.AddConfigPath(".")      // Cari di direktori kerja saat ini
-	viper.AddConfigPath("../../") // Tambahkan parent directory jika diperlukan
-	viper.SetConfigType("env")    // Format file .env
-	// Enable automatic environment variable lookup
+	viper.SetConfigName(".env")
+	viper.AddConfigPath(".")
+	viper.AddConfigPath("../../")
+	viper.SetConfigType("env")
 	viper.AutomaticEnv()
 
-	// Membaca file konfigurasi
 	if err := viper.ReadInConfig(); err != nil {
-		fmt.Printf("error while reading .env file: %v\n", err)
+		slog.WarnContext(context.Background(), "error while reading .env file", slog.String("error", err.Error()))
 	}
 
 	viper.SetDefault("APP_ENV", "local")
@@ -37,8 +35,31 @@ func NewViper() {
 	viper.SetDefault("APP_VERSION", version)
 	viper.SetDefault("APP_SERVICE_NAME", "memolab-service")
 
-	viper.SetDefault("AES_KEY", "super-long-secret-key-12345678901")
-	viper.SetDefault("JWT_KEY", "super-long-secret-key")
-
 	viper.SetDefault("AUTH_SERVICE_URL", "http://127.0.0.1:9000/api/v1")
+}
+
+var requiredConfigKeys = []string{
+	"POSTGRES_CONNECTION",
+	"REDIS_CONNECTION",
+	"MINIO_ENDPOINT",
+	"MINIO_ACCESS_KEY",
+	"MINIO_SECRET_KEY",
+	"MINIO_BUCKET",
+	"JWT_KEY",
+	"AES_KEY",
+	"HTTP_PORT",
+}
+
+func ValidateConfig() error {
+	var missing []string
+	for _, key := range requiredConfigKeys {
+		value := strings.TrimSpace(viper.GetString(key))
+		if value == "" {
+			missing = append(missing, key)
+		}
+	}
+	if len(missing) > 0 {
+		return errors.New("missing required configuration: " + strings.Join(missing, ", "))
+	}
+	return nil
 }

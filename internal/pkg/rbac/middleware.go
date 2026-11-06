@@ -6,7 +6,6 @@ import (
 	"go-memolab-service/internal/spesial"
 	"go-memolab-service/internal/value_object/v1/handling"
 	"go-memolab-service/internal/value_object/v1/response"
-	"log"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -19,7 +18,7 @@ type permissionOption func(user *entity.User) bool
  */
 func UUIDPad(n int) uuid.UUID {
 	if n < 1 || n > 281474976710655 { // 12 digits max
-		log.Fatal("UUIDPad: number out of range, must be between 1 and 281474976710655")
+		panic("UUIDPad: number out of range, must be between 1 and 281474976710655")
 	}
 	uuidStr := fmt.Sprintf("00000000-0000-0000-0000-%012x", n)
 	return uuid.MustParse(uuidStr)
