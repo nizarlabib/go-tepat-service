@@ -3,9 +3,9 @@ package core
 import (
 	"context"
 
-	"go-memolab-service/internal/entity"
-	"go-memolab-service/internal/framework/secondary/repository"
-	"go-memolab-service/internal/value_object/v1/pagination"
+	"go-starter-service/internal/entity"
+	"go-starter-service/internal/framework/secondary/repository"
+	"go-starter-service/internal/value_object/v1/pagination"
 )
 
 type User interface {

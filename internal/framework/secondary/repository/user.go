@@ -9,12 +9,12 @@ import (
 	"strings"
 	"time"
 
-	"go-memolab-service/internal/entity"
-	"go-memolab-service/internal/framework/secondary/storage"
-	"go-memolab-service/internal/infrastructure"
-	"go-memolab-service/internal/value_object/v1/constant"
-	"go-memolab-service/internal/value_object/v1/handling"
-	"go-memolab-service/internal/value_object/v1/pagination"
+	"go-starter-service/internal/entity"
+	"go-starter-service/internal/framework/secondary/storage"
+	"go-starter-service/internal/infrastructure"
+	"go-starter-service/internal/value_object/v1/constant"
+	"go-starter-service/internal/value_object/v1/handling"
+	"go-starter-service/internal/value_object/v1/pagination"
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"

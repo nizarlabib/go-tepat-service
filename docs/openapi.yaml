@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  title: Go Memolab Service API
+  title: Go Starter Service API
   description: |
     A secure Go backend service built with Chi router, PostgreSQL, Redis, and MinIO.
     Provides authentication, user management, and file storage capabilities.

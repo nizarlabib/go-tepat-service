@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"go-memolab-service/internal/entity"
-	"go-memolab-service/internal/value_object/v1/handling"
+	"go-starter-service/internal/entity"
+	"go-starter-service/internal/value_object/v1/handling"
 
 	"gorm.io/gorm"
 )

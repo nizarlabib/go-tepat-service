@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"os"
 
-	"go-memolab-service/internal/infrastructure"
+	"go-starter-service/internal/infrastructure"
 
 	"github.com/spf13/viper"
 )

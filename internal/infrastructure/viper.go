@@ -33,7 +33,7 @@ func NewViper() {
 		version = "local"
 	}
 	viper.SetDefault("APP_VERSION", version)
-	viper.SetDefault("APP_SERVICE_NAME", "memolab-service")
+	viper.SetDefault("APP_SERVICE_NAME", "starter-service")
 
 	viper.SetDefault("AUTH_SERVICE_URL", "http://127.0.0.1:9000/api/v1")
 }

@@ -13,12 +13,12 @@ import (
 	"net/http"
 	"time"
 
-	"go-memolab-service/internal/entity"
-	"go-memolab-service/internal/framework/secondary/repository"
-	"go-memolab-service/internal/value_object/v1/constant"
+	"go-starter-service/internal/entity"
+	"go-starter-service/internal/framework/secondary/repository"
+	"go-starter-service/internal/value_object/v1/constant"
 
-	// "go-memolab-service/internal/value_object/v1/convert"
-	"go-memolab-service/internal/value_object/v1/handling"
+	// "go-starter-service/internal/value_object/v1/convert"
+	"go-starter-service/internal/value_object/v1/handling"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"

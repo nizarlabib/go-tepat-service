@@ -6,7 +6,7 @@ import (
 	"runtime/debug"
 	"time"
 
-	"go-memolab-service/internal/value_object/v1/constant"
+	"go-starter-service/internal/value_object/v1/constant"
 
 	"github.com/getsentry/sentry-go"
 )

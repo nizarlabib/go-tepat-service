@@ -3,9 +3,9 @@ package validator
 import (
 	"encoding/json"
 	"fmt"
-	"go-memolab-service/internal/value_object/v1/constant"
-	"go-memolab-service/internal/value_object/v1/handling"
-	"go-memolab-service/internal/value_object/v1/response"
+	"go-starter-service/internal/value_object/v1/constant"
+	"go-starter-service/internal/value_object/v1/handling"
+	"go-starter-service/internal/value_object/v1/response"
 	"io"
 	"mime/multipart"
 	"net/http"

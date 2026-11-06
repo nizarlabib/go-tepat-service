@@ -8,8 +8,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"go-memolab-service/internal/value_object/v1/constant"
-	"go-memolab-service/internal/value_object/v1/handling"
+	"go-starter-service/internal/value_object/v1/constant"
+	"go-starter-service/internal/value_object/v1/handling"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/spf13/viper"

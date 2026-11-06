@@ -5,10 +5,10 @@ import (
 	"errors"
 	"net/http"
 
-	"go-memolab-service/internal/entity"
-	"go-memolab-service/internal/infrastructure"
-	"go-memolab-service/internal/value_object/v1/constant"
-	"go-memolab-service/internal/value_object/v1/handling"
+	"go-starter-service/internal/entity"
+	"go-starter-service/internal/infrastructure"
+	"go-starter-service/internal/value_object/v1/constant"
+	"go-starter-service/internal/value_object/v1/handling"
 
 	"gorm.io/gorm"
 )

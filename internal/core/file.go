@@ -6,13 +6,13 @@ import (
 	"net/http"
 	"slices"
 
-	"go-memolab-service/internal/entity"
-	"go-memolab-service/internal/framework/secondary/repository"
-	"go-memolab-service/internal/framework/secondary/storage"
-	"go-memolab-service/internal/spesial"
-	"go-memolab-service/internal/value_object/v1/constant"
-	"go-memolab-service/internal/value_object/v1/convert"
-	"go-memolab-service/internal/value_object/v1/handling"
+	"go-starter-service/internal/entity"
+	"go-starter-service/internal/framework/secondary/repository"
+	"go-starter-service/internal/framework/secondary/storage"
+	"go-starter-service/internal/spesial"
+	"go-starter-service/internal/value_object/v1/constant"
+	"go-starter-service/internal/value_object/v1/convert"
+	"go-starter-service/internal/value_object/v1/handling"
 )
 
 type File interface {
@@ -136,7 +136,7 @@ func (c *file) UploadFiles(ctx context.Context, fs []*entity.FileUpload) error {
 			Mime: contentType,
 			Size: fileSize,
 			Tags: []string{
-				"memolab-service",
+				"starter-service",
 				f.Path,
 			},
 			UploaderID: user.ID,

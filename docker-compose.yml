@@ -4,15 +4,15 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: memolab
-      POSTGRES_PASSWORD: memolab
-      POSTGRES_DB: memolab
+      POSTGRES_USER: starter
+      POSTGRES_PASSWORD: starter
+      POSTGRES_DB: starter_db
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U memolab -d memolab"]
+      test: ["CMD-SHELL", "pg_isready -U starter -d starter_db"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -56,12 +56,12 @@ services:
       APP_ENV: local
       APP_VERSION: 1.0.0
       HTTP_PORT: 8080
-      POSTGRES_CONNECTION: postgres://memolab:memolab@postgres:5432/memolab?sslmode=disable
+      POSTGRES_CONNECTION: postgres://starter:starter@postgres:5432/starter_db?sslmode=disable
       REDIS_CONNECTION: redis://redis:6379/0
       MINIO_ENDPOINT: minio:9000
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin
-      MINIO_BUCKET: memolab-bucket
+      MINIO_BUCKET: starter-bucket
       JWT_KEY: ${JWT_KEY:-change-me-in-production}
       AES_KEY: ${AES_KEY:-change-me-in-production}
       JWT_ACCESS_TOKEN_EXPIRY: 15

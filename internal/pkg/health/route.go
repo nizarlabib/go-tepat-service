@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"go-memolab-service/internal/infrastructure"
+	"go-starter-service/internal/infrastructure"
 	// "github.com/minio/minio-go/v7"
 	// "github.com/rabbitmq/amqp091-go"
 	"github.com/redis/go-redis/v9"

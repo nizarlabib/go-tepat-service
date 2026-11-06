@@ -13,13 +13,13 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: memolab
-          POSTGRES_PASSWORD: memolab
-          POSTGRES_DB: memolab
+          POSTGRES_USER: starter
+          POSTGRES_PASSWORD: starter
+          POSTGRES_DB: starter_db
         ports:
           - "5432:5432"
         options: >-
-          --health-cmd "pg_isready -U memolab -d memolab"
+          --health-cmd "pg_isready -U starter -d starter_db"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -54,7 +54,7 @@ jobs:
       - name: Run unit tests
         run: go test ./... -count=1
         env:
-          POSTGRES_CONNECTION: postgres://memolab:memolab@localhost:5432/memolab?sslmode=disable
+          POSTGRES_CONNECTION: postgres://starter:starter@localhost:5432/starter_db?sslmode=disable
           REDIS_CONNECTION: redis://localhost:6379/0
           JWT_KEY: test-jwt-key-for-ci-only
           AES_KEY: test-aes-key-for-ci-only
@@ -81,4 +81,4 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build Docker image
-        run: docker build -t go-memolab-service:latest .
+        run: docker build -t go-starter-service:latest .

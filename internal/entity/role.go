@@ -1,7 +1,7 @@
 package entity
 
 import (
-	"go-memolab-service/internal/pkg/rbac/permission"
+	"go-starter-service/internal/pkg/rbac/permission"
 	"time"
 
 	"github.com/google/uuid"

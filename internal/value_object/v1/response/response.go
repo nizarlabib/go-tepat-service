@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"os"
 
-	"go-memolab-service/internal/value_object/v1/constant"
-	"go-memolab-service/internal/value_object/v1/handling"
-	"go-memolab-service/internal/value_object/v1/utils/types"
+	"go-starter-service/internal/value_object/v1/constant"
+	"go-starter-service/internal/value_object/v1/handling"
+	"go-starter-service/internal/value_object/v1/utils/types"
 
 	"github.com/getsentry/sentry-go"
 )

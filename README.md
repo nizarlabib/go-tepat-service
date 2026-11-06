@@ -1,4 +1,4 @@
-# Go Memolab Service
+# Go Starter Service
 
 A secure, production-ready Go backend service built with Chi router, PostgreSQL, Redis, and MinIO. Provides authentication (JWT), user management, file storage, and role-based access control.
 
@@ -13,12 +13,13 @@ A secure, production-ready Go backend service built with Chi router, PostgreSQL,
 - [API Overview](#api-overview)
 - [Running Tests](#running-tests)
 - [Development Guidelines](#development-guidelines)
+- [Using as Project Starter](#using-as-project-starter)
 - [Deployment](#deployment)
 - [License](#license)
 
 ## Project Overview
 
-**Go Memolab Service** is a Go-based backend API service designed for secure user authentication and file management.
+**Go Starter Service** is a Go-based backend API service designed for secure user authentication and file management.
 
 ### Main Features
 
@@ -85,7 +86,7 @@ Dependency direction: handlers → API → core → repository → infrastructur
 
 ```bash
 git clone <repository-url>
-cd go-memolab-service
+cd go-starter-service
 ```
 
 ### 2. Install dependencies
@@ -109,7 +110,7 @@ Edit `.env` with your local configuration values. **Never commit real credential
 Ensure PostgreSQL is running and create the database:
 
 ```sql
-CREATE DATABASE memolab;
+CREATE DATABASE starter_db;
 ```
 
 ### 5. Database migration
@@ -148,7 +149,7 @@ This starts PostgreSQL, Redis, MinIO, and the API service.
 |-----------|-------------|----------|---------|
 | `APP_ENV` | Application environment (local, staging, production) | No | `local` |
 | `APP_VERSION` | Application version | No | `local` |
-| `APP_SERVICE_NAME` | Service name for logging and tracing | No | `memolab-service` |
+| `APP_SERVICE_NAME` | Service name for logging and tracing | No | `starter-service` |
 | `HTTP_PORT` | HTTP server port | No | `8080` |
 | `POSTGRES_CONNECTION` | PostgreSQL connection string | Yes | — |
 | `REDIS_CONNECTION` | Redis connection URL | Yes | — |
@@ -359,7 +360,162 @@ Use `gofmt` for all Go source files. The project follows standard Go formatting 
 2. Run `go run ./cmd/migration` to apply migrations
 3. For production, run migrations as part of the deployment pipeline
 
-## Deployment
+## Using as Project Starter
+
+This service is designed to be used as a template for your new Go projects. Follow these steps to scaffold a new project from `go-starter-service`.
+
+### 1. Clone and Rename the Module
+
+```bash
+git clone <this-repo-url> my-new-project
+cd my-new-project
+```
+
+Update the Go module name in `go.mod` to match your project:
+
+```go
+module github.com/your-org/my-new-project
+```
+
+Then update all import paths throughout the codebase:
+
+```bash
+# Example: replace go-starter-service with your module path
+find . -name "*.go" -exec sed -i 's|go-starter-service|github.com/your-org/my-new-project|g' {} +
+```
+
+### 2. Update Project Identity
+
+| File | What to Change |
+|------|---------------|
+| `go.mod` | `module` path |
+| `internal/infrastructure/viper.go` | `APP_SERVICE_NAME` default |
+| `internal/core/file.go` | MinIO user tags |
+| `cmd/api/main.go` | Swagger UI HTML title |
+| `docs/openapi.yaml` | API `info.title` and `info.description` |
+| `README.md` | Project title, description, and examples |
+| `.env.example` | `APP_SERVICE_NAME` default |
+
+### 3. Configure Environment Variables
+
+Copy `.env.example` to `.env` and update for your environment:
+
+```bash
+cp .env.example .env
+```
+
+Key variables to adjust:
+
+| Variable | Description |
+|----------|-------------|
+| `APP_ENV` | `local`, `staging`, or `production` |
+| `APP_SERVICE_NAME` | Your service name (used in logging, JWT issuer) |
+| `APP_VERSION` | Your application version |
+| `HTTP_PORT` | Port to listen on |
+| `POSTGRES_CONNECTION` | Your PostgreSQL connection string |
+| `REDIS_CONNECTION` | Your Redis connection URL |
+| `MINIO_ENDPOINT` | Your MinIO endpoint |
+| `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` | MinIO credentials |
+| `MINIO_BUCKET` | MinIO bucket name |
+| `JWT_KEY` | **Generate a strong random key** (required) |
+| `AES_KEY` | **Generate a strong random key** (required) |
+| `CORS_ALLOWED_ORIGINS` | Comma-separated allowed frontend origins |
+
+**Never commit real secrets.** Use environment variables or a secrets manager in production.
+
+### 4. Generate Cryptographic Keys
+
+Generate secure keys for JWT and AES:
+
+```bash
+# JWT key (32+ random bytes, base64)
+openssl rand -base64 32
+
+# AES key (32 bytes, base64)
+openssl rand -base64 32
+```
+
+Set these as `JWT_KEY` and `AES_KEY` in your `.env`.
+
+### 5. Update Database Configuration
+
+- `cmd/migration/main.go`: Update PostgreSQL credentials if not using environment variables
+- `docker-compose.yml`: Update `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, and `MINIO_BUCKET`
+- `.github/workflows/ci-cd.yml`: Update CI database credentials
+
+### 6. Review and Customize Business Logic
+
+| Area | Files to Review |
+|------|----------------|
+| Authentication | `internal/core/auth.go`, `internal/core/auth_login.go`, `internal/middleware/auth.go` |
+| JWT handling | `internal/spesial/jwt.go` |
+| User repository | `internal/framework/secondary/repository/user.go` |
+| File storage | `internal/framework/secondary/storage/minio.go` |
+| API handlers | `internal/framework/primary/rest/auth.go`, `rest/user.go`, `rest/file.go` |
+| API layer | `internal/api/auth.go`, `api/user.go`, `api/file.go` |
+| Entity models | `internal/entity/user.go`, `entity/auth.go`, `entity/file.go`, `entity/device_log.go` |
+| Validators | `internal/value_object/v3/validator/`, `internal/value_object/v1/validator/` |
+
+### 7. Remove or Customize Example Code
+
+- `internal/api/auth.go` contains several stub methods (`DeleteAccount`, `GetSessions`, `UpdateSession`, `UpdateUser`, `ImpersonateUser`, `ReleaseImpersonation`, `SwitchRole`, `UpdateProfile`, `UpdateProfilePhoto`, `UpdateUserPasswordExpiration`, `ValidateCsrfToken`, `VerifyUserPassword`) that return `nil`. Implement these based on your requirements.
+- Commented-out code in `rest/user.go`, `api/auth.go`, `cmd/migration/main.go` can be removed or restored as needed.
+
+### 8. Run and Verify
+
+```bash
+# Install dependencies
+go mod download
+
+# Format code
+gofmt -w .
+
+# Vet code
+go vet ./...
+
+# Build
+go build ./...
+
+# Run tests
+go test ./...
+
+# Run migration
+go run ./cmd/migration
+
+# Start the server
+go run ./cmd/api
+```
+
+### 9. Docker Deployment
+
+```bash
+# Build image
+docker build -t my-new-project:latest .
+
+# Or use docker-compose
+docker-compose up -d
+```
+
+Update `docker-compose.yml` environment variables before deploying.
+
+### 10. CI/CD
+
+The `.github/workflows/ci-cd.yml` workflow runs `gofmt`, `go vet`, `go test`, and `go test -race` on every push/PR. Update the `go-version` and environment variables as needed.
+
+### Quick Checklist
+
+- [ ] `go.mod` module path updated
+- [ ] All import paths updated (`go-starter-service` → your module)
+- [ ] `APP_SERVICE_NAME` updated in `viper.go` and `.env.example`
+- [ ] `JWT_KEY` and `AES_KEY` generated and set (never hardcoded)
+- [ ] Database credentials updated in `docker-compose.yml` and CI
+- [ ] MinIO bucket name updated
+- [ ] CORS allowed origins updated for your frontend
+- [ ] API title/description updated in `docs/openapi.yaml`
+- [ ] README updated with your project details
+- [ ] Stub methods in `api/auth.go` implemented or removed
+- [ ] Tests added for your custom business logic
+
 
 ### Production Build
 

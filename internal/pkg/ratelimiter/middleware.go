@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"time"
 
-	"go-memolab-service/internal/value_object/v1/constant"
-	"go-memolab-service/internal/value_object/v1/response"
+	"go-starter-service/internal/value_object/v1/constant"
+	"go-starter-service/internal/value_object/v1/response"
 
 	"github.com/go-chi/httprate"
 )

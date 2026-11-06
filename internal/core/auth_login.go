@@ -12,14 +12,14 @@ import (
 
 	// "time"
 
-	"go-memolab-service/internal/entity"
-	"go-memolab-service/internal/pkg/rbac/permission"
-	"go-memolab-service/internal/spesial"
-	"go-memolab-service/internal/value_object/v1/constant"
-	"go-memolab-service/internal/value_object/v1/convert"
-	"go-memolab-service/internal/value_object/v1/handling"
+	"go-starter-service/internal/entity"
+	"go-starter-service/internal/pkg/rbac/permission"
+	"go-starter-service/internal/spesial"
+	"go-starter-service/internal/value_object/v1/constant"
+	"go-starter-service/internal/value_object/v1/convert"
+	"go-starter-service/internal/value_object/v1/handling"
 
-	permissionindex "go-memolab-service/internal/pkg/rbac/permission-index"
+	permissionindex "go-starter-service/internal/pkg/rbac/permission-index"
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"

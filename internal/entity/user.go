@@ -2,9 +2,9 @@ package entity
 
 import (
 	// "context"
-	// "go-memolab-service/internal/value_object/v1/handling"
-	"go-memolab-service/internal/pkg/rbac/permission"
-	permissionindex "go-memolab-service/internal/pkg/rbac/permission-index"
+	// "go-starter-service/internal/value_object/v1/handling"
+	"go-starter-service/internal/pkg/rbac/permission"
+	permissionindex "go-starter-service/internal/pkg/rbac/permission-index"
 
 	// "slices"
 	"time"

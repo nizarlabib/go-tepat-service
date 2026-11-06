@@ -1,6 +1,6 @@
 # GO BACKEND SECURITY & TECHNICAL AUDIT REPORT
 
-**Project:** go-memolab-service  
+**Project:** go-starter-service  
 **Language:** Go 1.26.0  
 **HTTP Router:** Chi v5  
 **Database:** PostgreSQL (GORM v1.31.2)  

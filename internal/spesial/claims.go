@@ -3,9 +3,9 @@ package spesial
 import (
 	"context"
 
-	"go-memolab-service/internal/entity"
-	"go-memolab-service/internal/pkg/rbac/permission"
-	"go-memolab-service/internal/value_object/v1/handling"
+	"go-starter-service/internal/entity"
+	"go-starter-service/internal/pkg/rbac/permission"
+	"go-starter-service/internal/value_object/v1/handling"
 )
 
 type ContextKey string

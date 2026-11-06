@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"slices"
 
-	"go-memolab-service/internal/entity"
-	"go-memolab-service/internal/value_object/v1/constant"
-	"go-memolab-service/internal/value_object/v1/convert"
-	"go-memolab-service/internal/value_object/v1/handling"
+	"go-starter-service/internal/entity"
+	"go-starter-service/internal/value_object/v1/constant"
+	"go-starter-service/internal/value_object/v1/convert"
+	"go-starter-service/internal/value_object/v1/handling"
 
 	"github.com/spf13/viper"
 )

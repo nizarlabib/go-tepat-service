@@ -8,13 +8,13 @@ import (
 	"slices"
 	"strings"
 
-	"go-memolab-service/internal/api"
-	"go-memolab-service/internal/entity"
-	"go-memolab-service/internal/value_object/v1/constant"
-	"go-memolab-service/internal/value_object/v1/handling"
-	"go-memolab-service/internal/value_object/v1/response"
-	"go-memolab-service/internal/value_object/v1/router"
-	"go-memolab-service/internal/value_object/v1/validator"
+	"go-starter-service/internal/api"
+	"go-starter-service/internal/entity"
+	"go-starter-service/internal/value_object/v1/constant"
+	"go-starter-service/internal/value_object/v1/handling"
+	"go-starter-service/internal/value_object/v1/response"
+	"go-starter-service/internal/value_object/v1/router"
+	"go-starter-service/internal/value_object/v1/validator"
 
 	"github.com/go-chi/chi/v5"
 )

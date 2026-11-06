@@ -3,7 +3,7 @@ package rest
 import (
 	"strings"
 
-	"go-memolab-service/internal/entity"
+	"go-starter-service/internal/entity"
 
 	"github.com/google/uuid"
 )

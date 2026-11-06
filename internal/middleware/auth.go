@@ -8,12 +8,12 @@ import (
 	"slices"
 	"time"
 
-	"go-memolab-service/internal/entity"
-	"go-memolab-service/internal/framework/secondary/repository"
-	"go-memolab-service/internal/spesial"
-	"go-memolab-service/internal/value_object/v1/constant"
-	"go-memolab-service/internal/value_object/v1/handling"
-	"go-memolab-service/internal/value_object/v1/router"
+	"go-starter-service/internal/entity"
+	"go-starter-service/internal/framework/secondary/repository"
+	"go-starter-service/internal/spesial"
+	"go-starter-service/internal/value_object/v1/constant"
+	"go-starter-service/internal/value_object/v1/handling"
+	"go-starter-service/internal/value_object/v1/router"
 
 	"github.com/spf13/viper"
 	"golang.org/x/crypto/bcrypt"

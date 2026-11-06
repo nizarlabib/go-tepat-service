@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"go-memolab-service/internal/value_object/v1/constant"
-	"go-memolab-service/internal/value_object/v1/handling"
+	"go-starter-service/internal/value_object/v1/constant"
+	"go-starter-service/internal/value_object/v1/handling"
 )
 
 const (

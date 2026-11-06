@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"log"
 
-	"go-memolab-service/internal/entity"
-	"go-memolab-service/internal/pkg/dd"
-	"go-memolab-service/internal/pkg/rbac"
-	"go-memolab-service/internal/pkg/rbac/permission"
-	permissionindex "go-memolab-service/internal/pkg/rbac/permission-index"
+	"go-starter-service/internal/entity"
+	"go-starter-service/internal/pkg/dd"
+	"go-starter-service/internal/pkg/rbac"
+	"go-starter-service/internal/pkg/rbac/permission"
+	permissionindex "go-starter-service/internal/pkg/rbac/permission-index"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"

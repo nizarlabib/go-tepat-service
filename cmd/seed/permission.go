@@ -1,9 +1,9 @@
 package main
 
 import (
-	"go-memolab-service/internal/entity"
-	"go-memolab-service/internal/pkg/dd"
-	permissionindex "go-memolab-service/internal/pkg/rbac/permission-index"
+	"go-starter-service/internal/entity"
+	"go-starter-service/internal/pkg/dd"
+	permissionindex "go-starter-service/internal/pkg/rbac/permission-index"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"

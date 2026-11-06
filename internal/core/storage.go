@@ -3,7 +3,7 @@ package core
 import (
 	"context"
 
-	"go-memolab-service/internal/framework/secondary/storage"
+	"go-starter-service/internal/framework/secondary/storage"
 )
 
 type Storage interface {

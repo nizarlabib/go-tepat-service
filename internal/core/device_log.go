@@ -2,8 +2,8 @@ package core
 
 import (
 	"context"
-	"go-memolab-service/internal/entity"
-	"go-memolab-service/internal/framework/secondary/repository"
+	"go-starter-service/internal/entity"
+	"go-starter-service/internal/framework/secondary/repository"
 )
 
 type DeviceLog interface {

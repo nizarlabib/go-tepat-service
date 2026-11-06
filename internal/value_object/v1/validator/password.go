@@ -1,7 +1,7 @@
 package validator
 
 import (
-	"go-memolab-service/internal/config"
+	"go-starter-service/internal/config"
 	"regexp"
 	"strings"
 

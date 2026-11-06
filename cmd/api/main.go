@@ -11,19 +11,19 @@ import (
 	"syscall"
 	"time"
 
-	"go-memolab-service/internal/api"
-	"go-memolab-service/internal/core"
-	"go-memolab-service/internal/framework/primary/rest"
-	"go-memolab-service/internal/framework/secondary/repository"
-	"go-memolab-service/internal/framework/secondary/storage"
-	"go-memolab-service/internal/infrastructure"
-	appmiddleware "go-memolab-service/internal/middleware"
-	"go-memolab-service/internal/pkg/health"
-	"go-memolab-service/internal/pkg/middleware"
-	"go-memolab-service/internal/pkg/ratelimiter"
-	"go-memolab-service/internal/pkg/security"
-	"go-memolab-service/internal/spesial"
-	"go-memolab-service/internal/value_object/v1/helper"
+	"go-starter-service/internal/api"
+	"go-starter-service/internal/core"
+	"go-starter-service/internal/framework/primary/rest"
+	"go-starter-service/internal/framework/secondary/repository"
+	"go-starter-service/internal/framework/secondary/storage"
+	"go-starter-service/internal/infrastructure"
+	appmiddleware "go-starter-service/internal/middleware"
+	"go-starter-service/internal/pkg/health"
+	"go-starter-service/internal/pkg/middleware"
+	"go-starter-service/internal/pkg/ratelimiter"
+	"go-starter-service/internal/pkg/security"
+	"go-starter-service/internal/spesial"
+	"go-starter-service/internal/value_object/v1/helper"
 
 	"github.com/getsentry/sentry-go"
 	sentryhttp "github.com/getsentry/sentry-go/http"
@@ -150,7 +150,7 @@ func main() {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Go Memolab Service - API Documentation</title>
+  <title>Go Starter Service - API Documentation</title>
   <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui.css" />
 </head>
 <body>

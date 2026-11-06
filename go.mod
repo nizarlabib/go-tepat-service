@@ -1,4 +1,4 @@
-module go-memolab-service
+module go-starter-service
 
 go 1.26.0
 

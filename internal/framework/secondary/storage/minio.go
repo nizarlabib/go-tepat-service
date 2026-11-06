@@ -9,10 +9,10 @@ import (
 	"io"
 	"net/http"
 
-	"go-memolab-service/internal/infrastructure"
-	"go-memolab-service/internal/pkg/encryption"
-	"go-memolab-service/internal/value_object/v1/constant"
-	"go-memolab-service/internal/value_object/v1/handling"
+	"go-starter-service/internal/infrastructure"
+	"go-starter-service/internal/pkg/encryption"
+	"go-starter-service/internal/value_object/v1/constant"
+	"go-starter-service/internal/value_object/v1/handling"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/spf13/viper"
@@ -150,7 +150,7 @@ func (s *minioStorage) uploadEncryptedText(ctx context.Context, encryptedText []
 	_, err := s.client.PutObject(ctx, s.bucket, objectName, bytes.NewReader(encryptedText), objectSize, minio.PutObjectOptions{
 		ContentType: "application/octet-stream",
 		UserTags: map[string]string{
-			"service": "go-memolab-service",
+			"service": "go-starter-service",
 		},
 	})
 	if err != nil {

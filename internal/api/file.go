@@ -3,8 +3,8 @@ package api
 import (
 	"context"
 
-	"go-memolab-service/internal/core"
-	"go-memolab-service/internal/entity"
+	"go-starter-service/internal/core"
+	"go-starter-service/internal/entity"
 )
 
 type File interface {

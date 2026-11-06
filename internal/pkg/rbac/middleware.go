@@ -2,10 +2,10 @@ package rbac
 
 import (
 	"fmt"
-	"go-memolab-service/internal/entity"
-	"go-memolab-service/internal/spesial"
-	"go-memolab-service/internal/value_object/v1/handling"
-	"go-memolab-service/internal/value_object/v1/response"
+	"go-starter-service/internal/entity"
+	"go-starter-service/internal/spesial"
+	"go-starter-service/internal/value_object/v1/handling"
+	"go-starter-service/internal/value_object/v1/response"
 	"net/http"
 
 	"github.com/google/uuid"
