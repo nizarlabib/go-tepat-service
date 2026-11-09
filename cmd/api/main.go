@@ -124,7 +124,7 @@ func main() {
 	r.Use(security.SecurityHeaders)
 	r.Use(middleware.RequestID)
 	r.Use(middleware.BodyLimit(10 << 20))
-	r.Use(middleware.ContentType("application/json"))
+	r.Use(middleware.ContentType("application/json", "multipart/form-data"))
 	r.Use(middleware.Compression)
 	r.Use(sentryHandler.Handle)
 	r.Use(chimiddleware.RealIP)
@@ -146,32 +146,32 @@ func main() {
 		r.Get("/swagger/index.html", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			html := `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Go Starter Service - API Documentation</title>
-  <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui.css" />
-</head>
-<body>
-  <div id="swagger-ui"></div>
-  <script src="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui-bundle.js"></script>
-  <script src="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui-standalone-preset.js"></script>
-  <script>
-    const ui = SwaggerUIBundle({
-      url: "/swagger/openapi.yaml",
-      dom_id: "#swagger-ui",
-      deepLinking: true,
-      presets: [
-        SwaggerUIBundle.presets.apis,
-        SwaggerUIStandalonePreset
-      ],
-      layout: "StandaloneLayout"
-    })
-    window.ui = ui
-  </script>
-</body>
-</html>`
+				<html lang="en">
+				<head>
+				<meta charset="UTF-8">
+				<meta name="viewport" content="width=device-width, initial-scale=1.0">
+				<title>Go Starter Service - API Documentation</title>
+				<link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui.css" />
+				</head>
+				<body>
+				<div id="swagger-ui"></div>
+				<script src="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui-bundle.js"></script>
+				<script src="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui-standalone-preset.js"></script>
+				<script>
+					const ui = SwaggerUIBundle({
+					url: "/swagger/openapi.yaml",
+					dom_id: "#swagger-ui",
+					deepLinking: true,
+					presets: [
+						SwaggerUIBundle.presets.apis,
+						SwaggerUIStandalonePreset
+					],
+					layout: "StandaloneLayout"
+					})
+					window.ui = ui
+				</script>
+				</body>
+				</html>`
 			_, _ = w.Write([]byte(html))
 		})
 	}
