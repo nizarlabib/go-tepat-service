@@ -48,7 +48,7 @@ func seedRoles(permissions []*entity.Permission, db *gorm.DB) {
 	// 	return -1
 	// }
 
-	superAdminPerms := calc([]int{1, 2, 3, 4, 5, 6, 7})
+	superAdminPerms := calc([]int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10})
 	adminPerms := calc([]int{2})
 	userPerms := calc([]int{3})
 

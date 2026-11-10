@@ -10,4 +10,10 @@ const (
 	CreateUser
 	UpdateUser
 	DeleteUser
+
+	ReadProduct
+	CreateProduct
+	UpdateProduct
+	DeleteProduct
+	UpdateProductStatus
 )

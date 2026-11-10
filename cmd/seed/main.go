@@ -39,5 +39,7 @@ func main() {
 
 	seedRoles(permissions, db.GetClientGorm())
 
+	seedCategories(db.GetClientGorm())
+
 	logger.Info("Seeding process completed")
 }

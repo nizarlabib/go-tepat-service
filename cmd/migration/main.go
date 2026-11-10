@@ -35,15 +35,30 @@ func main() {
 	}
 
 	if err := db.GetClientGorm().AutoMigrate(
-		entity.File{},
-		entity.User{},
-		entity.Role{},
-		entity.DeviceLog{},
-		entity.Permission{},
+		// entity.File{},
+		// entity.User{},
+		// entity.Role{},
+		// entity.DeviceLog{},
+		// entity.Permission{},
+		entity.Category{},
+		entity.Product{},
 	); err != nil {
 		slog.Error("migration failed", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
+
+	// Partial unique indexes for slug so the same slug can be reused after
+	// a record is soft-deleted (deleted_at IS NOT NULL).
+	// partialIndexes := []string{
+	// 	`CREATE UNIQUE INDEX IF NOT EXISTS idx_products_slug_not_deleted ON products(slug) WHERE deleted_at IS NULL`,
+	// 	`CREATE UNIQUE INDEX IF NOT EXISTS idx_categories_slug_not_deleted ON categories(slug) WHERE deleted_at IS NULL`,
+	// }
+	// for _, idxSQL := range partialIndexes {
+	// 	if err := db.GetClientGorm().Exec(idxSQL).Error; err != nil {
+	// 		slog.Error("failed to create partial unique index", slog.String("error", err.Error()))
+	// 		os.Exit(1)
+	// 	}
+	// }
 
 	slog.Info("migration success")
 }

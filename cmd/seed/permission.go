@@ -19,6 +19,12 @@ func seedPermissions(db *gorm.DB) []*entity.Permission {
 		{Name: "Create User", BitIndex: permissionindex.CreateUser},
 		{Name: "Update User", BitIndex: permissionindex.UpdateUser},
 		{Name: "Delete User", BitIndex: permissionindex.DeleteUser},
+
+		{Name: "Read Product", BitIndex: permissionindex.ReadProduct},
+		{Name: "Create Product", BitIndex: permissionindex.CreateProduct},
+		{Name: "Update Product", BitIndex: permissionindex.UpdateProduct},
+		{Name: "Delete Product", BitIndex: permissionindex.DeleteProduct},
+		{Name: "Update Product Status", BitIndex: permissionindex.UpdateProductStatus},
 	}
 
 	err := db.Clauses(clause.OnConflict{

@@ -20,6 +20,10 @@ tags:
     description: User management and profile operations
   - name: Files
     description: File upload, download, and management
+  - name: Products
+    description: Product catalog management (public listing/detail + authenticated management)
+  - name: Categories
+    description: Product category catalog (public)
   - name: System
     description: Health checks and system endpoints
 paths:
@@ -830,6 +834,268 @@ paths:
         404:
           description: File not found
 
+  /products:
+    get:
+      summary: Get product list
+      description: |
+        Get a paginated list of active products. Supports search by name, brand,
+        or description, and filter by category slug.
+      tags: [Products]
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search by name, brand, or description (case-insensitive partial match)
+        - in: query
+          name: category
+          schema:
+            type: string
+          description: Filter by category slug
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+            default: 9
+            maximum: 50
+          description: Items per page (max 50)
+      responses:
+        200:
+          description: Product list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      products:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Product'
+                  page:
+                    $ref: '#/components/schemas/Pagination'
+                  meta:
+                    $ref: '#/components/schemas/ResponseMeta'
+    post:
+      summary: Create a product
+      description: Create a new product. Slug is generated automatically from the name.
+      tags: [Products]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProductRequest'
+      responses:
+        201:
+          description: Product created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      product:
+                        $ref: '#/components/schemas/Product'
+                  meta:
+                    $ref: '#/components/schemas/ResponseMeta'
+        400:
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        401:
+          description: Unauthorized
+        403:
+          description: Forbidden
+
+  /products/{slug}:
+    get:
+      summary: Get product detail by slug
+      description: Get a single active product by its slug, including category info.
+      tags: [Products]
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+          description: Product slug
+      responses:
+        200:
+          description: Product detail
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      product:
+                        $ref: '#/components/schemas/Product'
+                  meta:
+                    $ref: '#/components/schemas/ResponseMeta'
+        404:
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /categories:
+    get:
+      summary: Get category list
+      description: Get a list of active product categories.
+      tags: [Categories]
+      responses:
+        200:
+          description: Category list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      categories:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Category'
+                  meta:
+                    $ref: '#/components/schemas/ResponseMeta'
+
+  # --- Product Management (Authenticated + RBAC) ---
+
+  /products/{id}:
+    put:
+      summary: Update a product
+      description: Update all fields of a product by UUID. Slug is regenerated if name changes.
+      tags: [Products]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Product UUID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProductRequest'
+      responses:
+        200:
+          description: Product updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      product:
+                        $ref: '#/components/schemas/Product'
+                  meta:
+                    $ref: '#/components/schemas/ResponseMeta'
+        400:
+          description: Validation error
+        401:
+          description: Unauthorized
+        403:
+          description: Forbidden
+        404:
+          description: Product not found
+
+    patch:
+      summary: Update product status
+      description: Update only the is_active status of a product by UUID.
+      tags: [Products]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Product UUID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProductStatusRequest'
+      responses:
+        200:
+          description: Product status updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  meta:
+                    $ref: '#/components/schemas/ResponseMeta'
+        400:
+          description: Validation error
+        401:
+          description: Unauthorized
+        403:
+          description: Forbidden
+        404:
+          description: Product not found
+
+    delete:
+      summary: Soft delete a product
+      description: Soft delete a product by UUID (sets deleted_at).
+      tags: [Products]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Product UUID
+      responses:
+        200:
+          description: Product soft deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  meta:
+                    $ref: '#/components/schemas/ResponseMeta'
+        401:
+          description: Unauthorized
+        403:
+          description: Forbidden
+        404:
+          description: Product not found
+
 components:
   securitySchemes:
     BearerAuth:
@@ -862,3 +1128,152 @@ components:
           type: integer
         total_page:
           type: integer
+
+    ResponseMeta:
+      type: object
+      properties:
+        message:
+          type: string
+        code:
+          type: integer
+        error_code:
+          type: string
+
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        name:
+          type: string
+          example: "Nachi Drill Bit"
+        slug:
+          type: string
+          example: "nachi-drill-bit"
+        brand:
+          type: string
+          example: "Nachi"
+          nullable: true
+        category_id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        category:
+          $ref: '#/components/schemas/Category'
+        description:
+          type: string
+          nullable: true
+          example: "High quality drill bit"
+        image_url:
+          type: string
+          nullable: true
+          example: "https://example.com/image.jpg"
+        image_alt:
+          type: string
+          nullable: true
+          example: "Nachi Drill Bit"
+        price:
+          type: number
+          nullable: true
+          format: double
+          example: 150000.00
+          description: Product price in IDR. null means price is not set / request quotation.
+        is_active:
+          type: boolean
+          example: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+          nullable: true
+        is_active:
+          type: boolean
+        sort_order:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateProductRequest:
+      type: object
+      required:
+        - name
+        - category_id
+      properties:
+        name:
+          type: string
+          example: "Nachi Drill Bit"
+        brand:
+          type: string
+          example: "Nachi"
+        category_id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        description:
+          type: string
+        image_url:
+          type: string
+        image_alt:
+          type: string
+        price:
+          type: number
+          nullable: true
+          example: 150000.00
+        is_active:
+          type: boolean
+          example: true
+
+    UpdateProductRequest:
+      type: object
+      required:
+        - name
+        - category_id
+      properties:
+        name:
+          type: string
+        brand:
+          type: string
+        category_id:
+          type: string
+          format: uuid
+        description:
+          type: string
+        image_url:
+          type: string
+        image_alt:
+          type: string
+        price:
+          type: number
+          nullable: true
+        is_active:
+          type: boolean
+
+    UpdateProductStatusRequest:
+      type: object
+      required:
+        - is_active
+      properties:
+        is_active:
+          type: boolean
+          example: false

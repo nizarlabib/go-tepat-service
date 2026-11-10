@@ -92,6 +92,17 @@ func main() {
 	userService := core.NewUser(userRepo)
 	userApi := api.NewUser(userService)
 
+	categoryRepo := repository.NewCategory(db)
+	categoryService := core.NewCategory(categoryRepo)
+	categoryApi := api.NewCategory(categoryService)
+
+	productRepo := repository.NewProduct(db)
+	productService := core.NewProduct(
+		core.ProductWithRepo(productRepo),
+		core.ProductWithCategory(categoryApi),
+	)
+	productApi := api.NewProduct(productService)
+
 	deviceLogRepo := repository.NewdeviceLog(db)
 	deviceLogService := core.NewDeviceLog(deviceLogRepo)
 
@@ -180,12 +191,19 @@ func main() {
 		// Public routes
 		r.Mount("/auth", rest.NewAuth(authApi, userRepo, storageService, redis.GetClient()).Start(ctx))
 
+		// // Public product and category routes (no authentication required)
+		// r.Method(http.MethodGet, "/products", router.RootHandler(productRest.FindAll))
+		// r.Method(http.MethodGet, "/products/{slug}", router.RootHandler(productRest.FindBySlug))
+		// r.Method(http.MethodGet, "/categories", router.RootHandler(productRest.FindCategories))
+
 		// Protected routes
 		r.Group(func(r chi.Router) {
 			r.Use(appmiddleware.AuthMiddleware(userRepo))
 
 			r.Mount("/users", rest.NewUser(userApi).Start(ctx))
 			r.Mount("/files", rest.NewFile(fileApi).Start(ctx))
+			r.Mount("/categories", rest.NewCategory(categoryApi).Start())
+			r.Mount("/products", rest.NewProduct(productApi).Start())
 		})
 	})
 

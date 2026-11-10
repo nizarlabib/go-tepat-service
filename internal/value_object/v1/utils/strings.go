@@ -104,6 +104,29 @@ func ToSnakeCase(s string) string {
 	return string(result)
 }
 
+func Slugify(s string) string {
+	var result []rune
+	for _, r := range s {
+		switch {
+		case r >= 'a' && r <= 'z', r >= '0' && r <= '9':
+			result = append(result, r)
+		case r >= 'A' && r <= 'Z':
+			result = append(result, unicode.ToLower(r))
+		case r == ' ' || r == '_' || r == '-' || r == '.':
+			if len(result) > 0 && result[len(result)-1] != '-' {
+				result = append(result, '-')
+			}
+		default:
+			// ignore other characters
+		}
+	}
+	slug := strings.Trim(string(result), "-")
+	for strings.Contains(slug, "--") {
+		slug = strings.ReplaceAll(slug, "--", "-")
+	}
+	return slug
+}
+
 func GetFieldName(field reflect.StructField, useJsonTag bool) string {
 	if useJsonTag {
 		tag := field.Tag.Get("json")
